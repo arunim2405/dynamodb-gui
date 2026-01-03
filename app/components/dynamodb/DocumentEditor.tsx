@@ -3,12 +3,99 @@ import CodeMirror from '@uiw/react-codemirror'
 import { json, jsonParseLinter } from '@codemirror/lang-json'
 import { linter, lintGutter } from '@codemirror/lint'
 import { EditorView } from '@codemirror/view'
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { tags } from '@lezer/highlight'
 import { Button } from '@/app/components/ui/button'
 import { Alert, AlertDescription } from '@/app/components/ui/alert'
 import { Spinner } from '@/app/components/ui/spinner'
 import { Switch } from '@/app/components/ui/switch'
 import { X, Copy, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { andromeda, andromedaInit } from '@uiw/codemirror-theme-andromeda'
+
+// Custom dark theme that bundles properly with Electron
+const darkTheme = EditorView.theme(
+  {
+    '&': {
+      backgroundColor: '#23262e',
+      color: '#d5ced9',
+    },
+    '.cm-content': {
+      caretColor: '#f39c12',
+      fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace',
+      fontSize: '13px',
+    },
+    '.cm-cursor, .cm-dropCursor': {
+      borderLeftColor: '#f39c12',
+    },
+    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
+      backgroundColor: '#3d4455',
+    },
+    '.cm-activeLine': {
+      backgroundColor: '#2a2e38',
+    },
+    '.cm-gutters': {
+      backgroundColor: '#23262e',
+      color: '#5c6370',
+      border: 'none',
+    },
+    '.cm-activeLineGutter': {
+      backgroundColor: '#2a2e38',
+    },
+    '.cm-lineNumbers .cm-gutterElement': {
+      padding: '0 8px 0 16px',
+    },
+    '.cm-foldGutter .cm-gutterElement': {
+      padding: '0 4px',
+    },
+    '.cm-tooltip': {
+      backgroundColor: '#2a2e38',
+      border: '1px solid #3d4455',
+      color: '#d5ced9',
+    },
+    '.cm-tooltip-autocomplete': {
+      '& > ul > li[aria-selected]': {
+        backgroundColor: '#3d4455',
+      },
+    },
+    '.cm-panels': {
+      backgroundColor: '#23262e',
+      color: '#d5ced9',
+    },
+    '.cm-searchMatch': {
+      backgroundColor: '#5c637066',
+    },
+    '.cm-searchMatch.cm-searchMatch-selected': {
+      backgroundColor: '#f39c1244',
+    },
+  },
+  { dark: true }
+)
+
+// Syntax highlighting colors
+const darkHighlighting = HighlightStyle.define([
+  { tag: tags.keyword, color: '#c74ded' },
+  { tag: tags.operator, color: '#c74ded' },
+  { tag: tags.special(tags.variableName), color: '#ffe261' },
+  { tag: tags.typeName, color: '#ffe261' },
+  { tag: tags.atom, color: '#96e072' },
+  { tag: tags.number, color: '#f39c12' },
+  { tag: tags.definition(tags.variableName), color: '#ffe261' },
+  { tag: tags.string, color: '#96e072' },
+  { tag: tags.special(tags.string), color: '#96e072' },
+  { tag: tags.comment, color: '#5c6370', fontStyle: 'italic' },
+  { tag: tags.variableName, color: '#ee5d43' },
+  { tag: tags.tagName, color: '#ee5d43' },
+  { tag: tags.bracket, color: '#d5ced9' },
+  { tag: tags.meta, color: '#5c6370' },
+  { tag: tags.attributeName, color: '#ffe261' },
+  { tag: tags.propertyName, color: '#00e8c6' },
+  { tag: tags.className, color: '#ffe261' },
+  { tag: tags.labelName, color: '#ffe261' },
+  { tag: tags.invalid, color: '#ee5d43' },
+  { tag: tags.bool, color: '#f39c12' },
+  { tag: tags.null, color: '#f39c12' },
+])
+
+const customTheme = [darkTheme, syntaxHighlighting(darkHighlighting)]
 
 interface DocumentEditorProps {
   isOpen: boolean
@@ -218,7 +305,7 @@ export function DocumentEditor({ isOpen, onClose, tableName, item, onSave, isNew
             onChange={handleContentChange}
             extensions={extensions}
             height="auto"
-            theme={andromeda}
+            theme={customTheme}
             basicSetup={{
               lineNumbers: true,
               highlightActiveLineGutter: true,
