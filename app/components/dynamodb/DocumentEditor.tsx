@@ -218,12 +218,7 @@ export function DocumentEditor({ isOpen, onClose, tableName, item, onSave, isNew
             onChange={handleContentChange}
             extensions={extensions}
             height="auto"
-            theme={andromedaInit({
-              settings: {
-                caret: '#c6c6c6',
-                fontFamily: 'monospace',
-              },
-            })}
+            theme={andromeda}
             basicSetup={{
               lineNumbers: true,
               highlightActiveLineGutter: true,
