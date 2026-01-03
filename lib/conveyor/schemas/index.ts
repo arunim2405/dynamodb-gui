@@ -1,11 +1,13 @@
 import { z } from 'zod'
 import { windowIpcSchema } from './window-schema'
 import { appIpcSchema } from './app-schema'
+import { dynamoDBIpcSchema } from './dynamodb-schema'
 
 // Define all IPC channel schemas in one place
 export const ipcSchemas = {
   ...windowIpcSchema,
   ...appIpcSchema,
+  ...dynamoDBIpcSchema,
 } as const
 
 // Extract types from Zod schemas

@@ -1,6 +1,6 @@
-import WelcomeKit from '@/app/components/welcome/WelcomeKit'
+import { DynamoDBApp } from '@/app/components/dynamodb'
 import './styles/app.css'
 
 export default function App() {
-  return <WelcomeKit />
+  return <DynamoDBApp />
 }
