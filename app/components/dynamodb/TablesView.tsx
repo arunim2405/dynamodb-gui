@@ -5,7 +5,6 @@ import { Button } from '@/app/components/ui/button'
 import { Badge } from '@/app/components/ui/badge'
 import { Spinner } from '@/app/components/ui/spinner'
 import { Alert, AlertDescription } from '@/app/components/ui/alert'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/app/components/ui/table'
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from '@/app/components/ui/dropdown-menu'
 import { Search, Plus, ChevronDown, Star, StarOff, Shield, ShieldOff, ArrowUpDown } from 'lucide-react'
 import type { TableInfo } from '@/lib/services/dynamodb-service'
@@ -130,9 +129,9 @@ export function TablesView() {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Toolbar */}
-      <div className="flex items-center gap-4 p-4 border-b">
+      <div className="flex items-center gap-4 p-4 border-b shrink-0">
         <h1 className="text-lg font-semibold">Tables ({filteredTables.length})</h1>
 
         <div className="relative flex-1 max-w-md">
@@ -169,26 +168,26 @@ export function TablesView() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="w-12"></TableHead>
-              <TableHead>
+      <div className="flex-1">
+        <table className="w-full caption-bottom text-sm">
+          <thead className="[&_tr]:border-b sticky top-0 bg-background z-10">
+            <tr className="border-b bg-muted/50">
+              <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground w-12"></th>
+              <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground">
                 <button onClick={() => toggleSort('name')} className="flex items-center gap-1 hover:text-foreground">
                   Name
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
-              </TableHead>
-              <TableHead>
+              </th>
+              <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground">
                 <button onClick={() => toggleSort('status')} className="flex items-center gap-1 hover:text-foreground">
                   Status
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
-              </TableHead>
-              <TableHead>Partition Key</TableHead>
-              <TableHead>Sort Key</TableHead>
-              <TableHead>
+              </th>
+              <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground">Partition Key</th>
+              <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground">Sort Key</th>
+              <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground">
                 <button
                   onClick={() => toggleSort('gsiCount')}
                   className="flex items-center gap-1 hover:text-foreground"
@@ -196,11 +195,11 @@ export function TablesView() {
                   Indexes
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
-              </TableHead>
-              <TableHead>Replication</TableHead>
-              <TableHead>Protection</TableHead>
-              <TableHead>Favorite</TableHead>
-              <TableHead>
+              </th>
+              <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground">Replication</th>
+              <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground">Protection</th>
+              <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground">Favorite</th>
+              <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground">
                 <button
                   onClick={() => toggleSort('capacityMode')}
                   className="flex items-center gap-1 hover:text-foreground"
@@ -208,44 +207,44 @@ export function TablesView() {
                   Capacity
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="[&_tr:last-child]:border-0">
             {filteredTables.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={10} className="h-24 text-center">
+              <tr className="border-b">
+                <td colSpan={10} className="p-3 h-24 text-center text-muted-foreground">
                   {searchQuery ? 'No tables match your search.' : 'No tables found.'}
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ) : (
               filteredTables.map((table) => (
-                <TableRow key={table.name} className="cursor-pointer hover:bg-muted/50">
-                  <TableCell>
+                <tr key={table.name} className="border-b transition-colors hover:bg-muted/50 cursor-pointer">
+                  <td className="p-3 align-middle">
                     <input type="checkbox" className="rounded" />
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td className="p-3 align-middle">
                     <button
                       onClick={() => selectTable(table.name)}
                       className="text-primary hover:underline font-medium"
                     >
                       {table.name}
                     </button>
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td className="p-3 align-middle">
                     <Badge variant={table.status === 'ACTIVE' ? 'default' : 'secondary'}>{table.status}</Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">{formatKeyInfo(table)}</TableCell>
-                  <TableCell className="font-mono text-xs">{formatSortKeyInfo(table)}</TableCell>
-                  <TableCell>{table.gsiCount + table.lsiCount}</TableCell>
-                  <TableCell>
+                  </td>
+                  <td className="p-3 align-middle font-mono text-xs">{formatKeyInfo(table)}</td>
+                  <td className="p-3 align-middle font-mono text-xs">{formatSortKeyInfo(table)}</td>
+                  <td className="p-3 align-middle">{table.gsiCount + table.lsiCount}</td>
+                  <td className="p-3 align-middle">
                     {table.replicationRegions.length > 0 ? (
                       <Badge variant="outline">{table.replicationRegions.length} Region(s)</Badge>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td className="p-3 align-middle">
                     {table.deletionProtection ? (
                       <div className="flex items-center gap-1 text-green-600">
                         <Shield className="h-4 w-4" />
@@ -257,8 +256,8 @@ export function TablesView() {
                         <span className="text-xs">Off</span>
                       </div>
                     )}
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td className="p-3 align-middle">
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
@@ -272,19 +271,19 @@ export function TablesView() {
                         <StarOff className="h-4 w-4 text-muted-foreground" />
                       )}
                     </button>
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td className="p-3 align-middle">
                     <Badge variant="outline">{table.capacityMode === 'ON_DEMAND' ? 'On-demand' : 'Provisioned'}</Badge>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))
             )}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
 
       {/* Footer */}
-      <div className="border-t px-4 py-2 text-sm text-muted-foreground">
+      <div className="border-t px-4 py-2 text-sm text-muted-foreground shrink-0">
         Showing {filteredTables.length} of {tables.length} tables
       </div>
     </div>
