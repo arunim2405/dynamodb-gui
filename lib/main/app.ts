@@ -27,6 +27,7 @@ export function createAppWindow(): void {
     webPreferences: {
       preload: join(__dirname, '../preload/preload.js'),
       sandbox: false,
+      webSecurity: false,
     },
   })
 

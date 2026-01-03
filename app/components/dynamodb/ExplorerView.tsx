@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useDynamoDB } from './DynamoDBContext'
+import { DocumentEditor } from './DocumentEditor'
 import { Input } from '@/app/components/ui/input'
 import { Button } from '@/app/components/ui/button'
 import { Select } from '@/app/components/ui/select'
@@ -9,7 +10,7 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert'
 import { Collapsible } from '@/app/components/ui/collapsible'
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group'
 import { Checkbox } from '@/app/components/ui/checkbox'
-import { Play, Plus, X, RotateCcw, ChevronDown, ChevronRight, Copy } from 'lucide-react'
+import { Play, Plus, X, RotateCcw, ChevronDown, ChevronRight, Copy, Pencil, Trash2, FilePlus } from 'lucide-react'
 import type { ScanQueryRequest, ScanQueryFilter, ScanQueryResult } from '@/lib/services/dynamodb-service'
 
 // Sort key operators for Query mode
@@ -224,6 +225,12 @@ export function ExplorerView() {
   const [error, setError] = React.useState<string | null>(null)
   const [lastEvaluatedKey, setLastEvaluatedKey] = React.useState<Record<string, unknown> | undefined>()
 
+  // Document editor state
+  const [editorOpen, setEditorOpen] = React.useState(false)
+  const [editingItem, setEditingItem] = React.useState<Record<string, unknown> | null>(null)
+  const [isNewItem, setIsNewItem] = React.useState(false)
+  const [deleteConfirm, setDeleteConfirm] = React.useState<number | null>(null)
+
   // Get current key schema based on selected index
   const currentKeySchema = React.useMemo(() => {
     if (!currentTable) return null
@@ -340,6 +347,76 @@ export function ExplorerView() {
       navigator.clipboard.writeText(JSON.stringify(results.items, null, 2))
     }
   }
+
+  // Document editor handlers
+  const handleEditItem = (item: Record<string, unknown>) => {
+    setEditingItem(item)
+    setIsNewItem(false)
+    setEditorOpen(true)
+  }
+
+  const handleCreateItem = () => {
+    setEditingItem(null)
+    setIsNewItem(true)
+    setEditorOpen(true)
+  }
+
+  const handleCloseEditor = () => {
+    setEditorOpen(false)
+    setEditingItem(null)
+    setIsNewItem(false)
+  }
+
+  const handleSaveItem = async (item: Record<string, unknown>) => {
+    if (!currentTableName) throw new Error('No table selected')
+    await window.conveyor.dynamodb.putItem(currentTableName, item)
+    // Refresh results after saving
+    await executeQuery()
+  }
+
+  const handleDeleteItem = async (item: Record<string, unknown>, index: number) => {
+    if (!currentTableName || !currentTable) return
+
+    // Show delete confirmation
+    if (deleteConfirm !== index) {
+      setDeleteConfirm(index)
+      return
+    }
+
+    // Build the key from the item using the table's key schema
+    const key: Record<string, unknown> = {}
+    if (currentTable.table.partitionKey) {
+      key[currentTable.table.partitionKey.name] = item[currentTable.table.partitionKey.name]
+    }
+    if (currentTable.table.sortKey) {
+      key[currentTable.table.sortKey.name] = item[currentTable.table.sortKey.name]
+    }
+
+    try {
+      await window.conveyor.dynamodb.deleteItem(currentTableName, key)
+      // Remove from local results
+      if (results) {
+        setResults({
+          ...results,
+          items: results.items.filter((_, i) => i !== index),
+          count: results.count - 1,
+        })
+      }
+      setDeleteConfirm(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete item')
+    }
+  }
+
+  // Reset delete confirmation when clicking elsewhere
+  React.useEffect(() => {
+    if (deleteConfirm !== null) {
+      const handler = () => setDeleteConfirm(null)
+      const timeout = setTimeout(handler, 3000) // Auto-reset after 3 seconds
+      return () => clearTimeout(timeout)
+    }
+    return undefined
+  }, [deleteConfirm])
 
   if (!currentTable) {
     return (
@@ -512,16 +589,46 @@ export function ExplorerView() {
                 <h3 className="font-medium">Items returned: {results.count}</h3>
                 <Badge variant="outline">Scanned: {results.scannedCount}</Badge>
               </div>
-              <Button variant="outline" size="sm" onClick={copyResultsToClipboard}>
-                <Copy className="h-4 w-4 mr-1" />
-                Copy JSON
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleCreateItem}>
+                  <FilePlus className="h-4 w-4 mr-1" />
+                  Create item
+                </Button>
+                <Button variant="outline" size="sm" onClick={copyResultsToClipboard}>
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copy JSON
+                </Button>
+              </div>
             </div>
 
             {/* Results List */}
             <div className="space-y-2">
               {results.items.map((item, index) => (
-                <div key={index} className="border rounded-lg p-3 bg-card hover:bg-muted/50 transition-colors">
+                <div
+                  key={index}
+                  className="border rounded-lg p-3 bg-card hover:bg-muted/50 transition-colors group relative"
+                >
+                  {/* Item actions */}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleEditItem(item)}
+                      title="Edit item"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant={deleteConfirm === index ? 'destructive' : 'ghost'}
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleDeleteItem(item, index)}
+                      title={deleteConfirm === index ? 'Click again to confirm' : 'Delete item'}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                   <JsonTreeView data={item} />
                 </div>
               ))}
@@ -547,6 +654,16 @@ export function ExplorerView() {
           </div>
         )}
       </div>
+
+      {/* Document Editor Modal */}
+      <DocumentEditor
+        isOpen={editorOpen}
+        onClose={handleCloseEditor}
+        tableName={currentTableName || ''}
+        item={editingItem}
+        onSave={handleSaveItem}
+        isNew={isNewItem}
+      />
     </div>
   )
 }

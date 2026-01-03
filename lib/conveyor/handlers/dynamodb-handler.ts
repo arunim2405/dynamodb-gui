@@ -36,4 +36,13 @@ export const registerDynamoDBHandlers = () => {
   handle('dynamodb-scan-query', async (request: ScanQueryRequest) => {
     return dynamoDBService.scanOrQuery(request)
   })
+
+  // Item operations
+  handle('dynamodb-put-item', async (tableName: string, item: Record<string, unknown>) => {
+    return dynamoDBService.putItem(tableName, item)
+  })
+
+  handle('dynamodb-delete-item', async (tableName: string, key: Record<string, unknown>) => {
+    return dynamoDBService.deleteItem(tableName, key)
+  })
 }

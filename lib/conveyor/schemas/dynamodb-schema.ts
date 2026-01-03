@@ -154,4 +154,14 @@ export const dynamoDBIpcSchema = {
     args: z.tuple([scanQueryRequestSchema]),
     return: scanQueryResultSchema,
   },
+
+  // Item operations
+  'dynamodb-put-item': {
+    args: z.tuple([z.string(), z.record(z.string(), z.unknown())]), // tableName, item
+    return: z.void(),
+  },
+  'dynamodb-delete-item': {
+    args: z.tuple([z.string(), z.record(z.string(), z.unknown())]), // tableName, key
+    return: z.void(),
+  },
 }

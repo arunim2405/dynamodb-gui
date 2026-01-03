@@ -28,4 +28,11 @@ export class DynamoDBApi extends ConveyorApi {
 
   // Scan/Query operations
   scanQuery = (request: ScanQueryRequest): Promise<ScanQueryResult> => this.invoke('dynamodb-scan-query', request)
+
+  // Item operations
+  putItem = (tableName: string, item: Record<string, unknown>): Promise<void> =>
+    this.invoke('dynamodb-put-item', tableName, item)
+
+  deleteItem = (tableName: string, key: Record<string, unknown>): Promise<void> =>
+    this.invoke('dynamodb-delete-item', tableName, key)
 }

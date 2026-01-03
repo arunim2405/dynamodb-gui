@@ -12,6 +12,8 @@ import {
   DynamoDBDocumentClient,
   ScanCommand,
   QueryCommand,
+  PutCommand,
+  DeleteCommand,
   type ScanCommandInput,
   type QueryCommandInput,
 } from '@aws-sdk/lib-dynamodb'
@@ -633,6 +635,38 @@ class DynamoDBService {
       itemCount: table.ItemCount || 0,
       tableSizeBytes: table.TableSizeBytes || 0,
     }
+  }
+
+  /**
+   * Put (create or update) an item in a DynamoDB table
+   */
+  async putItem(tableName: string, item: Record<string, unknown>): Promise<void> {
+    if (!this.docClient) {
+      throw new Error('Not connected to AWS. Please connect first.')
+    }
+
+    const command = new PutCommand({
+      TableName: tableName,
+      Item: item,
+    })
+
+    await this.docClient.send(command)
+  }
+
+  /**
+   * Delete an item from a DynamoDB table
+   */
+  async deleteItem(tableName: string, key: Record<string, unknown>): Promise<void> {
+    if (!this.docClient) {
+      throw new Error('Not connected to AWS. Please connect first.')
+    }
+
+    const command = new DeleteCommand({
+      TableName: tableName,
+      Key: key,
+    })
+
+    await this.docClient.send(command)
   }
 
   private parseIndexes(table: TableDescription): IndexInfo[] {
