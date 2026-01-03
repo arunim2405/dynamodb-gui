@@ -16,7 +16,7 @@ const WindowContext = createContext<WindowContextProps | undefined>(undefined)
 export const WindowContextProvider = ({
   children,
   titlebar = {
-    title: 'Electron React App',
+    title: 'DynamoDesktop',
     icon: 'appIcon.png',
     titleCentered: false,
     menuItems: [],

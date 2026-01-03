@@ -1,5 +1,5 @@
-appId: com.guasam.era
-productName: ElectronReactApp
+appId: com.arunim.dynamodesktop
+productName: DynamoDesktop
 directories:
   buildResources: resources/build
 files:
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: ElectronReactApp
+  executableName: DynamoDesktop
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
