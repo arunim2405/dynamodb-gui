@@ -1,70 +1,111 @@
-# Electron React App
+# DynamoDB Desktop GUI
 
-A modern Electron application template with React, Vite, TypeScript, and TailwindCSS. This project provides a solid foundation for developing cross-platform desktop applications.
+A modern, open-source graphical interface for Amazon DynamoDB built with Electron. Manage your DynamoDB tables, scan and query data, and edit items with a beautiful, native desktop experience across Windows, macOS, and Linux.
 
 <br />
 
 ![Electron](https://img.shields.io/badge/v37.3.1-Electron-blue) &nbsp;
 ![React](https://img.shields.io/badge/v19.1.1-React-blue) &nbsp;
 ![TypeScript](https://img.shields.io/badge/v5.9.2-TypeScript-blue) &nbsp;
-![Vite](https://img.shields.io/badge/v7.1.3-Vite-blue) &nbsp;
-![Shadcn](https://img.shields.io/badge/Shadcn-UI-blue) &nbsp;
+![AWS SDK](https://img.shields.io/badge/AWS_SDK-v3-orange) &nbsp;
 ![Tailwind](https://img.shields.io/badge/v4.1.12-Tailwind-blue)
 
 <br />
 
-<p align="center">
-    <img src="app/assets/era-preview.png" target="_blank" />
-</p>
+## Features
 
-<p align="center">
-    <a href="https://imgur.com/B5pGkDk">Watch Video Preview</a>
-</p>
+### 🔐 **AWS Credentials**
+
+- Automatic detection of AWS CLI credentials
+- Support for multiple AWS profiles
+- Easy profile and region switching
+- Uses AWS SDK v3 for optimal performance
+
+### 📊 **Table Management**
+
+- Browse all DynamoDB tables in your AWS account
+- View detailed table information (item count, size, indexes)
+- Search and filter tables
+- Favorite tables for quick access
+- Sort by name, items, size, or creation date
+
+### 🔍 **Scan & Query**
+
+- Powerful scan and query builder
+- Support for partition key and sort key conditions
+- Filter expressions with multiple operators
+- Select specific indexes (GSI/LSI)
+- Attribute projection (all attributes, keys only, or specific attributes)
+- Pagination with "Load More" functionality
+
+### ✏️ **Item Editor**
+
+- Rich JSON editor powered by CodeMirror
+- Real-time JSON validation
+- Syntax highlighting and error detection
+- Edit existing items or create new ones
+- Toggle between standard JSON and DynamoDB JSON format
+- Auto-formatting and line numbers
+- Copy JSON to clipboard
+
+### 🎨 **Modern UI**
+
+- Clean, dark-themed interface
+- Responsive design
+- Collapsible JSON tree view for results
+- Custom window controls and titlebar
+- Keyboard shortcuts
 
 <br />
 
-## Stack
+## Technology Stack
 
-🔹 **[Electron](https://www.electronjs.org)** - Cross-platform desktop application framework.<br />
-🔹 **[React](https://react.dev)** - The library for web and native user interfaces.<br />
-🔹 **[TypeScript](https://www.typescriptlang.org)** - Type-safe JavaScript.<br />
-🔹 **[Shadcn UI](https://ui.shadcn.com)** - Beautiful and accessible component library.<br />
-🔹 **[TailwindCSS](https://tailwindcss.com)** - Utility-first CSS framework.<br />
-🔹 **[Electron Vite](https://electron-vite.org)** - Lightning-fast build tool based on **Vite** for fastest hot-reload.<br />
-🔹 **[Electron Builder](https://www.electron.build/index.html)** - Configured for packaging applications.<br />
+🔹 **[Electron](https://www.electronjs.org)** - Cross-platform desktop framework<br />
+🔹 **[React](https://react.dev)** - Modern UI library<br />
+🔹 **[TypeScript](https://www.typescriptlang.org)** - Type-safe development<br />
+🔹 **[AWS SDK v3](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/)** - DynamoDB client<br />
+🔹 **[CodeMirror](https://codemirror.net)** - JSON editor with validation<br />
+🔹 **[TailwindCSS](https://tailwindcss.com)** - Utility-first styling<br />
+🔹 **[Zod](https://zod.dev)** - Schema validation<br />
+🔹 **[Electron Vite](https://electron-vite.org)** - Lightning-fast build tool
 
 <br />
 
-## In-Built Features
+## Prerequisites
 
-| Feature                     | Description                                                                    |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| **Conveyor**                | Type-safe inter-process communication with Zod validation                      |
-| **Custom Titlebar & Menus** | Style the window titlebar and menus as you want                                |
-| **Clean Project Structure** | Separation of main and renderer processes                                      |
-| **Resources Protocol**      | Access local file resources via `res://` protocol                              |
-| **Import Path Aliases**     | Keep your imports organized and clean                                          |
-| **Theme Switcher**          | Built-in theme switching for dark and light mode                               |
-| **Error Boundary**          | Built-in React error boundary with detailed error reporting                    |
-| **Welcome Kit**             | Interactive showcase with Framer Motion animations                             |
-| **Code Formatting**         | Prettier and ESLint pre-configured for code quality                            |
-| **Hot Reload**              | Lightning-fast development with Vite's HMR                                     |
-| **VS Code Debugging**       | Pre-configured launch configurations for debugging main and renderer processes |
+Before running the application, ensure you have:
+
+1. **Node.js** (v18 or higher)
+2. **AWS CLI** configured with valid credentials
+
+   ```bash
+   aws configure
+   ```
+
+   Or manually create `~/.aws/credentials` with your access keys:
+
+   ```ini
+   [default]
+   aws_access_key_id = YOUR_ACCESS_KEY
+   aws_secret_access_key = YOUR_SECRET_KEY
+
+   [profile-name]
+   aws_access_key_id = YOUR_ACCESS_KEY
+   aws_secret_access_key = YOUR_SECRET_KEY
+   ```
 
 <br />
 
 ## Installation
 
-Clone the repository:
-
 ```bash
 # Clone the repository
-git clone https://github.com/guasam/electron-react-app
+git clone https://github.com/yourusername/dynamodb-gui
 
 # Change directory
-cd electron-react-app
+cd dynamodb-gui
 
-# Install dependencies (use any package manager: npm, yarn, pnpm, bun)
+# Install dependencies
 npm install
 ```
 
@@ -78,321 +119,66 @@ Start the development server:
 npm run dev
 ```
 
-This will start Electron with hot-reload enabled so you can see changes in real time.
+This launches the application in development mode with hot-reload enabled.
 
 <br />
 
-## Conveyor - Inter-Process Communication
+## Usage
 
-**Conveyor** is a type-safe IPC system that enables secure communication between your React frontend and Electron's main process. It uses Zod schemas for runtime validation and provides full TypeScript support.
+### Connecting to DynamoDB
 
-🔹 **Type-safe** - Full TypeScript support with compile-time and runtime validation<br />
-🔹 **Secure** - Validates all data using Zod schemas<br />
-🔹 **Modular** - Clean API structure with organized handlers<br />
-🔹 **Simple** - Easy-to-use React hooks and global APIs<br />
+1. Launch the application
+2. Select your AWS profile from the dropdown (default profile is pre-selected)
+3. Choose your AWS region
+4. Click "Connect" to load your tables
 
-<br />
+### Browsing Tables
 
-### Quick Start
+- View all tables in a sortable, searchable list
+- Click the star icon to favorite frequently used tables
+- Click on any table to view its details and data
 
-Use the `useConveyor` hook in your React components:
+### Scanning/Querying Data
 
-```tsx
-import { useConveyor } from '@/app/hooks/use-conveyor'
+1. Select a table from the sidebar
+2. Choose between "Scan" or "Query" mode
+3. For Query mode:
+   - Enter the partition key value (required)
+   - Optionally add sort key conditions
+4. Add filters to narrow results (optional)
+5. Select attribute projection (all, keys only, or specific attributes)
+6. Click "Run" to execute
 
-function MyComponent() {
-  const { version } = useConveyor('app')
-  const { windowMinimize } = useConveyor('window')
+### Editing Items
 
-  const handleGetVersion = async () => {
-    console.log('App version:', await version())
-    console.log('App version:', await window.conveyor.app.version()) // OR
-  }
+1. Run a scan or query to display items
+2. Hover over any item to reveal the edit button (✏️)
+3. Modify the JSON in the editor
+4. Click "Format" to auto-format JSON
+5. Toggle "View DynamoDB JSON" to see the type-annotated format
+6. Click "Save" to update the item
 
-  return (
-    <div>
-      <button onClick={handleGetVersion}>Get Version</button>
-      <button onClick={windowMinimize}>Minimize Window</button>
-    </div>
-  )
-}
-```
+### Creating Items
 
-### Available APIs
+1. Navigate to a table
+2. Run any scan/query to see results
+3. Click "Create item" button
+4. Enter the JSON for your new item (must include partition key and sort key if applicable)
+5. Click "Save"
 
-Conveyor provides two ways to access IPC methods:
+### Deleting Items
 
-```tsx
-// Method 1: React Hook (Recommended)
-const { version } = useConveyor('app')
-await version()
-
-// Method 2: React Hook Global Conveyor
-const conveyor = useConveyor()
-await conveyor.app.version()
-
-// Method 3: Global Window Object
-await window.conveyor.app.version()
-```
-
-### Built-in APIs
-
-| API      | Description                | Example                            |
-| -------- | -------------------------- | ---------------------------------- |
-| `app`    | App specfiic operations    | `conveyor.app.version()`           |
-| `window` | Window specific operations | `conveyor.window.windowMinimize()` |
+1. Hover over any item in the results
+2. Click the delete button (🗑️)
+3. Click again to confirm deletion
 
 <br />
 
-### Creating Custom APIs
-
-Follow these 4 simple steps to add your own IPC methods:
-
-#### Step 1: Define Schema
-
-Create a schema in `lib/conveyor/schemas/app-schema.ts`:
-
-```ts
-import { z } from 'zod'
-
-export const appIpcSchema = {
-  // Simple method with no parameters
-  'get-app-info': {
-    args: z.tuple([]),
-    return: z.object({
-      name: z.string(),
-      version: z.string(),
-      platform: z.string(),
-    }),
-  },
-
-  // Method with parameters
-  'save-user-preference': {
-    args: z.tuple([
-      z.object({
-        key: z.string(),
-        value: z.string(),
-      }),
-    ]),
-    return: z.boolean(),
-  },
-} as const
-```
-
-#### Step 2: Add API Method
-
-Update `lib/conveyor/api/app-api.ts`:
-
-```ts
-export class AppApi extends ConveyorApi {
-  getAppInfo = () => this.invoke('get-app-info')
-  saveUserPreference = (key: string, value: string) => this.invoke('save-user-preference', { key, value })
-}
-```
-
-#### Step 3: Implement Handler
-
-Add handler in `lib/conveyor/handlers/app-handler.ts`:
-
-```ts
-import { handle } from '@/lib/main/shared'
-import { app } from 'electron'
-
-export const registerAppHandlers = () => {
-  handle('get-app-info', () => ({
-    name: app.getName(),
-    version: app.getVersion(),
-    platform: process.platform,
-  }))
-
-  handle('save-user-preference', async ({ key, value }) => {
-    // Save to file, database, etc.
-    console.log(`Saving ${key}: ${value}`)
-    return true
-  })
-}
-```
-
-#### Step 4: Register Handler
-
-In `lib/main/app.ts`:
-
-```ts
-import { registerAppHandlers } from '@/lib/conveyor/handlers/app-handler'
-
-// During app initialization
-registerAppHandlers()
-```
-
-### Usage in Components
-
-```tsx
-function SettingsComponent() {
-  const conveyor = useConveyor()
-  const [appInfo, setAppInfo] = useState(null)
-
-  useEffect(() => {
-    // Get app information
-    conveyor.app.getAppInfo().then(setAppInfo)
-  }, [])
-
-  const saveTheme = (theme: string) => {
-    conveyor.app.saveUserPreference('theme', theme)
-  }
-
-  return (
-    <div>
-      <h2>App Info</h2>
-      {appInfo && (
-        <p>
-          {appInfo.name} v{appInfo.version} on {appInfo.platform}
-        </p>
-      )}
-
-      <button onClick={() => saveTheme('dark')}>Set Dark Theme</button>
-    </div>
-  )
-}
-```
-
-### Error Handling
-
-```tsx
-const handleApiCall = async () => {
-  try {
-    const result = await conveyor.app.getAppInfo()
-    console.log('Success:', result)
-  } catch (error) {
-    console.error('API call failed:', error)
-    // Handle validation errors, network issues, etc.
-  }
-}
-```
-
-### Type Safety Benefits
-
-```tsx
-// ✅ TypeScript enforces correct types
-const info = await conveyor.app.getAppInfo() // Returns { name: string, version: string, platform: string }
-
-// ❌ TypeScript error - wrong parameter type
-const result = await conveyor.app.saveUserPreference(123, 'value') // Error: Expected string, got number
-
-// ✅ Runtime validation ensures data integrity
-const valid = await conveyor.app.saveUserPreference('theme', 'dark') // Validates at runtime
-```
-
-📖 **For advanced usage and detailed documentation, see [Conveyor README](lib/conveyor/README.md)**
-
-<br />
-
-## Custom Window Components
-
-This template includes a custom window implementation with:
-
-- Custom titlebar with app icon
-- Window control buttons (minimize, maximize, close)
-- Menu system with keyboard shortcuts
-- Dark/light mode toggle
-- Cross-platform support for Windows and macOS
-
-<br />
-
-### Titlebar Menu Toggle
-
-The titlebar menu can be toggled using:
-
-- **Windows**: Press the `Alt` key
-- **macOS**: Press the `Option (⌥)` key
-
-When you press the toggle key:
-
-- If the menu is hidden, it becomes visible
-- If the menu is already visible, it gets hidden
-- The menu only toggles if menu items are available
-
-<br />
-
-### Customizing Menu Items
-
-To add, remove or modify menu items, update the following file:
-
-- `app/components/window/menus.ts`
-
-<br />
-
-## Tailwind CSS
-
-The project supports **Tailwind** for styling:
-
-```ts
-// Example component with Tailwind classes
-const Button = () => (
-  <button className="px-4 py-2 text-white rounded-md">
-    Click me
-  </button>
-);
-```
-
-<br />
-
-## Key Directories Explained
-
-#### `app/` - Renderer Process
-
-- **React application** that runs in the browser window
-- Contains all UI components, styles, and client-side logic
-- Uses Vite for fast development and building
-
-#### `lib/conveyor/` - Conveyor - Inter-Process Communication
-
-- **Type-safe communication** between renderer and main processes
-- **API classes** provide clean interfaces for IPC calls
-- **Handlers** implement the actual logic in the main process
-- **Schemas** define data contracts with Zod validation
-
-#### `lib/main/` - Main Process
-
-- **Electron main process** code
-- Handles window creation, app lifecycle, and system integration
-- Registers IPC handlers and manages app state
-
-#### `lib/preload/` - Preload Scripts
-
-- **Security bridge** between renderer and main processes
-- Exposes safe APIs to the renderer process
-- Implements context isolation for security
-
-<br />
-
-## Development Workflow
-
-1. **UI Development**: Work in `app/` directory with React components
-2. **IPC Communication**: Define schemas, add API methods, implement handlers
-3. **Window Features**: Customize window behavior in `app/components/window/`
-4. **Prettier Formatting**: Use `npm run format` to format the code.
-5. **ESLint**: Use `npm run lint` to lint the code.
-
-<br />
-
-## Path Aliases
-
-The project uses TypeScript path aliases for clean imports:
-
-```ts
-// Instead of relative paths like:
-import { Button } from '../../../components/ui/button'
-
-// Use clean aliases:
-import { Button } from '@/app/components/ui/button'
-import { conveyor } from '@/lib/conveyor/api'
-```
-
-Configured aliases by default, customise as you want:
-
-- `@/` → `app/` (application code - renderer process)
-- `@/lib/` → `lib/` (shared library code containing conveyor, main, preload, etc.)
-- `@/resources/` → `resources/` (build resources for the application)
+## Keyboard Shortcuts
+
+- **Alt** (Windows) / **⌥ Option** (macOS) - Toggle menu bar
+- **Ctrl+C** / **⌘+C** - Copy (in editor)
+- **Ctrl+A** / **⌘+A** - Select all (in editor)
 
 <br />
 
@@ -410,8 +196,79 @@ npm run build:mac
 # For Linux
 npm run build:linux
 
-# Unpacked for all platforms
+# Unpacked (for testing)
 npm run build:unpack
 ```
 
-Distribution files will be located in the `dist` directory.
+Distribution files will be in the `dist` directory.
+
+<br />
+
+## Project Structure
+
+```
+dynamodb-gui/
+├── app/                          # Renderer process (React UI)
+│   ├── components/
+│   │   ├── dynamodb/            # DynamoDB-specific components
+│   │   │   ├── DynamoDBApp.tsx  # Main app container
+│   │   │   ├── ConnectionHeader.tsx
+│   │   │   ├── TablesView.tsx   # Table listing
+│   │   │   ├── ExplorerView.tsx # Scan/Query interface
+│   │   │   └── DocumentEditor.tsx # JSON editor
+│   │   ├── ui/                  # Reusable UI components
+│   │   └── window/              # Custom window controls
+│   └── styles/                  # Global styles
+├── lib/
+│   ├── conveyor/                # IPC communication layer
+│   │   ├── api/                 # Client-side API
+│   │   ├── handlers/            # Server-side handlers
+│   │   └── schemas/             # Zod validation schemas
+│   ├── main/                    # Electron main process
+│   ├── preload/                 # Preload scripts
+│   └── services/
+│       └── dynamodb-service.ts  # DynamoDB SDK wrapper
+└── resources/                   # Build resources (icons, etc.)
+```
+
+<br />
+
+## Security
+
+- Uses AWS SDK's credential provider chain for secure authentication
+- Context isolation enabled for security
+- No credentials stored in the application
+- All IPC communication is validated with Zod schemas
+
+<br />
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+<br />
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+<br />
+
+## Acknowledgments
+
+- Built with [Electron React App](https://github.com/guasam/electron-react-app) template
+- Uses AWS SDK for JavaScript v3
+- CodeMirror for the JSON editor
+- Tailwind CSS for styling
+
+<br />
+
+## Support
+
+If you find this project helpful, please give it a ⭐️ on GitHub!
