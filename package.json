@@ -1,12 +1,12 @@
 {
   "name": "era",
   "version": "12.0.0",
-  "description": "A modern Electron application template with React, Vite, TypeScript, Shadcn UI and TailwindCSS",
+  "description": "DynamoDB GUI Client built with Electron, React, and Vite",
   "main": "./out/main/main.js",
   "license": "MIT",
   "author": {
-    "name": "Guasam",
-    "url": "https://github.com/guasam"
+    "name": "Arunim",
+    "url": "https://github.com/arunim2405"
   },
   "scripts": {
     "dev": "cross-env ELECTRON_DISABLE_SANDBOX=1 electron-vite dev -w",
