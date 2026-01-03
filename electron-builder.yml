@@ -33,7 +33,7 @@ linux:
     - AppImage
     - snap
     - deb
-  maintainer: electronjs.org
+  maintainer: arunim2@gmail.com
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
