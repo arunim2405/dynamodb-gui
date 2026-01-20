@@ -11,7 +11,12 @@ import { Collapsible } from '@/app/components/ui/collapsible'
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group'
 import { Checkbox } from '@/app/components/ui/checkbox'
 import { Play, Plus, X, RotateCcw, ChevronDown, ChevronRight, Copy, Pencil, Trash2, FilePlus } from 'lucide-react'
-import type { ScanQueryRequest, ScanQueryFilter, ScanQueryResult, KeyAttributeValue } from '@/lib/services/dynamodb-service'
+import type {
+  ScanQueryRequest,
+  ScanQueryFilter,
+  ScanQueryResult,
+  KeyAttributeValue,
+} from '@/lib/services/dynamodb-service'
 
 // Sort key operators for Query mode
 const SORT_KEY_OPERATORS = [
@@ -186,7 +191,10 @@ function SortKeyRow({ sortCondition, index, onChange, onRemove, canRemove }: Sor
         <Select
           value={sortCondition.operator}
           onChange={(e) =>
-            onChange(index, { ...sortCondition, operator: e.target.value as SortKeyRowProps['sortCondition']['operator'] })
+            onChange(index, {
+              ...sortCondition,
+              operator: e.target.value as SortKeyRowProps['sortCondition']['operator'],
+            })
           }
           options={SORT_KEY_OPERATORS}
         />
@@ -213,7 +221,9 @@ function SortKeyRow({ sortCondition, index, onChange, onRemove, canRemove }: Sor
       <div className="w-28">
         <Select
           value={sortCondition.type}
-          onChange={(e) => onChange(index, { ...sortCondition, type: e.target.value as SortKeyRowProps['sortCondition']['type'] })}
+          onChange={(e) =>
+            onChange(index, { ...sortCondition, type: e.target.value as SortKeyRowProps['sortCondition']['type'] })
+          }
           options={ATTRIBUTE_TYPES}
         />
       </div>
@@ -331,7 +341,7 @@ export function ExplorerView() {
   const [sortDescending, setSortDescending] = React.useState(false)
   const [filters, setFilters] = React.useState<ScanQueryFilter[]>([])
   const [limit] = React.useState<number>(50)
-  
+
   // Multi-attribute key state
   const [partitionKeyValues, setPartitionKeyValues] = React.useState<KeyAttributeValue[]>([
     { attributeName: '', value: '', type: 'S' },
@@ -857,7 +867,9 @@ export function ExplorerView() {
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             <div className="text-muted-foreground">
               <p className="mb-2">Configure your {mode === 'scan' ? 'scan' : 'query'} and click Run to see results.</p>
-              {mode === 'query' && <p className="text-sm">Query requires at least one partition key attribute with a value.</p>}
+              {mode === 'query' && (
+                <p className="text-sm">Query requires at least one partition key attribute with a value.</p>
+              )}
             </div>
           </div>
         )}
