@@ -22,6 +22,14 @@ import { loadSharedConfigFiles } from '@aws-sdk/shared-ini-file-loader'
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts'
 
 // Types for the DynamoDB service
+
+// Multi-attribute key support (up to 4 attributes per key as per AWS spec)
+export interface KeyAttributeValue {
+  attributeName: string
+  value: string
+  type: 'S' | 'N' | 'B' | 'BOOL' | 'NULL'
+}
+
 export interface TableInfo {
   name: string
   status: string
@@ -75,12 +83,24 @@ export interface ScanQueryRequest {
   tableName: string
   indexName?: string
   mode: 'scan' | 'query'
+  // Legacy single partition key value (for backward compatibility)
   partitionKeyValue?: string
+  // Multi-attribute partition key values (up to 4 attributes)
+  partitionKeyValues?: KeyAttributeValue[]
+  // Legacy single sort key condition (for backward compatibility)
   sortKeyCondition?: {
     operator: 'EQ' | 'LE' | 'LT' | 'GE' | 'GT' | 'BETWEEN' | 'BEGINS_WITH'
     value: string
     value2?: string // For BETWEEN
   }
+  // Multi-attribute sort key conditions (up to 4 attributes)
+  sortKeyConditions?: {
+    attributeName: string
+    operator: 'EQ' | 'LE' | 'LT' | 'GE' | 'GT' | 'BETWEEN' | 'BEGINS_WITH'
+    value: string
+    value2?: string // For BETWEEN
+    type: 'S' | 'N' | 'B' | 'BOOL' | 'NULL'
+  }[]
   filters: ScanQueryFilter[]
   projectionType: 'ALL' | 'KEYS_ONLY' | 'INCLUDE'
   projectionAttributes?: string[]
@@ -329,7 +349,11 @@ class DynamoDBService {
       throw new Error('Cannot determine partition key for this table/index')
     }
 
-    if (!request.partitionKeyValue) {
+    // Check for partition key values (either legacy or multi-attribute)
+    const hasLegacyPartitionKey = !!request.partitionKeyValue
+    const hasMultiPartitionKeys = request.partitionKeyValues && request.partitionKeyValues.length > 0
+
+    if (!hasLegacyPartitionKey && !hasMultiPartitionKeys) {
       throw new Error('Partition key value is required for Query operations')
     }
 
@@ -337,21 +361,76 @@ class DynamoDBService {
     const expressionAttributeValues: Record<string, unknown> = {}
     let keyConditionExpression = ''
 
-    // Partition key condition
-    const pkName = `#pk`
-    const pkValue = `:pkval`
-    expressionAttributeNames[pkName] = keySchema.partitionKey.name
-    expressionAttributeValues[pkValue] = this.coerceValue(request.partitionKeyValue, keySchema.partitionKey.type)
-    keyConditionExpression = `${pkName} = ${pkValue}`
+    // Build partition key condition
+    if (hasMultiPartitionKeys && request.partitionKeyValues) {
+      // Multi-attribute partition key (up to 4 attributes)
+      const pkConditions: string[] = []
+      request.partitionKeyValues.forEach((keyAttr, index) => {
+        const pkName = `#pk${index}`
+        const pkValue = `:pkval${index}`
+        expressionAttributeNames[pkName] = keyAttr.attributeName
+        expressionAttributeValues[pkValue] = this.coerceValue(keyAttr.value, keyAttr.type)
+        pkConditions.push(`${pkName} = ${pkValue}`)
+      })
+      keyConditionExpression = pkConditions.join(' AND ')
+    } else if (hasLegacyPartitionKey) {
+      // Legacy single partition key (backward compatibility)
+      const pkName = `#pk`
+      const pkValue = `:pkval`
+      expressionAttributeNames[pkName] = keySchema.partitionKey.name
+      expressionAttributeValues[pkValue] = this.coerceValue(request.partitionKeyValue!, keySchema.partitionKey.type)
+      keyConditionExpression = `${pkName} = ${pkValue}`
+    }
 
-    // Sort key condition (if provided)
-    if (request.sortKeyCondition && keySchema.sortKey) {
+    // Build sort key condition
+    const hasLegacySortKey = !!request.sortKeyCondition
+    const hasMultiSortKeys = request.sortKeyConditions && request.sortKeyConditions.length > 0
+
+    if (hasMultiSortKeys && request.sortKeyConditions) {
+      // Multi-attribute sort key (up to 4 attributes)
+      request.sortKeyConditions.forEach((sortCondition, index) => {
+        const skName = `#sk${index}`
+        const skValue = `:skval${index}`
+        expressionAttributeNames[skName] = sortCondition.attributeName
+        expressionAttributeValues[skValue] = this.coerceValue(sortCondition.value, sortCondition.type)
+
+        let condition = ''
+        switch (sortCondition.operator) {
+          case 'EQ':
+            condition = `${skName} = ${skValue}`
+            break
+          case 'LT':
+            condition = `${skName} < ${skValue}`
+            break
+          case 'LE':
+            condition = `${skName} <= ${skValue}`
+            break
+          case 'GT':
+            condition = `${skName} > ${skValue}`
+            break
+          case 'GE':
+            condition = `${skName} >= ${skValue}`
+            break
+          case 'BEGINS_WITH':
+            condition = `begins_with(${skName}, ${skValue})`
+            break
+          case 'BETWEEN': {
+            const skValue2 = `:skval${index}_2`
+            expressionAttributeValues[skValue2] = this.coerceValue(sortCondition.value2!, sortCondition.type)
+            condition = `${skName} BETWEEN ${skValue} AND ${skValue2}`
+            break
+          }
+        }
+        keyConditionExpression += ` AND ${condition}`
+      })
+    } else if (hasLegacySortKey && keySchema.sortKey) {
+      // Legacy single sort key (backward compatibility)
       const skName = `#sk`
       const skValue = `:skval`
       expressionAttributeNames[skName] = keySchema.sortKey.name
-      expressionAttributeValues[skValue] = this.coerceValue(request.sortKeyCondition.value, keySchema.sortKey.type)
+      expressionAttributeValues[skValue] = this.coerceValue(request.sortKeyCondition!.value, keySchema.sortKey.type)
 
-      switch (request.sortKeyCondition.operator) {
+      switch (request.sortKeyCondition!.operator) {
         case 'EQ':
           keyConditionExpression += ` AND ${skName} = ${skValue}`
           break
@@ -373,7 +452,7 @@ class DynamoDBService {
         case 'BETWEEN': {
           const skValue2 = `:skval2`
           expressionAttributeValues[skValue2] = this.coerceValue(
-            request.sortKeyCondition.value2!,
+            request.sortKeyCondition!.value2!,
             keySchema.sortKey.type
           )
           keyConditionExpression += ` AND ${skName} BETWEEN ${skValue} AND ${skValue2}`

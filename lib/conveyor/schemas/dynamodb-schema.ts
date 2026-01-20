@@ -1,5 +1,12 @@
 import { z } from 'zod'
 
+// Schema for key attribute value (multi-attribute key support)
+const keyAttributeValueSchema = z.object({
+  attributeName: z.string(),
+  value: z.string(),
+  type: z.enum(['S', 'N', 'B', 'BOOL', 'NULL']),
+})
+
 // Schema for table key info
 const keyInfoSchema = z
   .object({
@@ -88,13 +95,28 @@ const sortKeyConditionSchema = z.object({
   value2: z.string().optional(),
 })
 
+// Schema for multi-attribute sort key condition
+const multiAttributeSortKeyConditionSchema = z.object({
+  attributeName: z.string(),
+  operator: z.enum(['EQ', 'LE', 'LT', 'GE', 'GT', 'BETWEEN', 'BEGINS_WITH']),
+  value: z.string(),
+  value2: z.string().optional(),
+  type: z.enum(['S', 'N', 'B', 'BOOL', 'NULL']),
+})
+
 // Schema for scan/query request
 const scanQueryRequestSchema = z.object({
   tableName: z.string(),
   indexName: z.string().optional(),
   mode: z.enum(['scan', 'query']),
+  // Legacy single partition key value (for backward compatibility)
   partitionKeyValue: z.string().optional(),
+  // Multi-attribute partition key values (up to 4 attributes)
+  partitionKeyValues: z.array(keyAttributeValueSchema).max(4).optional(),
+  // Legacy single sort key condition (for backward compatibility)
   sortKeyCondition: sortKeyConditionSchema.optional(),
+  // Multi-attribute sort key conditions (up to 4 attributes)
+  sortKeyConditions: z.array(multiAttributeSortKeyConditionSchema).max(4).optional(),
   filters: z.array(scanQueryFilterSchema),
   projectionType: z.enum(['ALL', 'KEYS_ONLY', 'INCLUDE']),
   projectionAttributes: z.array(z.string()).optional(),
