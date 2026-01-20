@@ -1,0 +1,90 @@
+name: Build and Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS app
+        run: npm run build:mac
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          for file in *.dmg; do
+            if [ -f "$file" ]; then
+              shasum -a 256 "$file" > "$file.sha256"
+              echo "Generated checksum for $file"
+              cat "$file.sha256"
+            fi
+          done
+
+      - name: Upload macOS binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.dmg
+            dist/*.dmg.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows app
+        run: npm run build:win
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          Get-ChildItem -Filter *.exe | ForEach-Object {
+            $hash = Get-FileHash -Algorithm SHA256 $_.FullName
+            $hashStr = "$($hash.Hash.ToLower())  $($_.Name)"
+            $hashStr | Out-File -FilePath "$($_.Name).sha256" -Encoding utf8
+            Write-Host "Generated checksum for $($_.Name)"
+            Get-Content "$($_.Name).sha256"
+          }
+        shell: pwsh
+
+      - name: Upload Windows binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+            dist/*.exe.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
