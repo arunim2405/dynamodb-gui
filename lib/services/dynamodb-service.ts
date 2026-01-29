@@ -33,8 +33,11 @@ export interface KeyAttributeValue {
 export interface TableInfo {
   name: string
   status: string
+  // Support both single key (legacy) and multi-attribute keys
   partitionKey: { name: string; type: string } | null
   sortKey: { name: string; type: string } | null
+  partitionKeys: { name: string; type: string }[] // Multi-attribute support (up to 4)
+  sortKeys: { name: string; type: string }[] // Multi-attribute support (up to 4)
   gsiCount: number
   lsiCount: number
   replicationRegions: string[]
@@ -47,8 +50,11 @@ export interface TableInfo {
 export interface IndexInfo {
   name: string
   type: 'GSI' | 'LSI'
+  // Support both single key (legacy) and multi-attribute keys
   partitionKey: { name: string; type: string } | null
   sortKey: { name: string; type: string } | null
+  partitionKeys: { name: string; type: string }[] // Multi-attribute support (up to 4)
+  sortKeys: { name: string; type: string }[] // Multi-attribute support (up to 4)
   projectionType: string
   status?: string
 }
@@ -693,6 +699,18 @@ class DynamoDBService {
       }
     }
 
+    // Get all keys of a specific type (for multi-attribute support)
+    const getAllKeysOfType = (keyType: 'HASH' | 'RANGE'): { name: string; type: string }[] => {
+      const keys = keySchema.filter((k: KeySchemaElement) => k.KeyType === keyType)
+      return keys.map((key) => {
+        const attr = attributeDefinitions.find((a: AttributeDefinition) => a.AttributeName === key.AttributeName)
+        return {
+          name: key.AttributeName!,
+          type: attr?.AttributeType || 'S',
+        }
+      })
+    }
+
     const gsiCount = table.GlobalSecondaryIndexes?.length || 0
     const lsiCount = table.LocalSecondaryIndexes?.length || 0
 
@@ -706,6 +724,8 @@ class DynamoDBService {
       status: table.TableStatus || 'UNKNOWN',
       partitionKey: getKeyInfo('HASH'),
       sortKey: getKeyInfo('RANGE'),
+      partitionKeys: getAllKeysOfType('HASH'),
+      sortKeys: getAllKeysOfType('RANGE'),
       gsiCount,
       lsiCount,
       replicationRegions,
@@ -766,6 +786,21 @@ class DynamoDBService {
       }
     }
 
+    // Get all keys of a specific type from schema (for multi-attribute support)
+    const getAllKeysFromSchema = (
+      keySchema: KeySchemaElement[] | undefined,
+      keyType: 'HASH' | 'RANGE'
+    ): { name: string; type: string }[] => {
+      const keys = keySchema?.filter((k) => k.KeyType === keyType) || []
+      return keys.map((key) => {
+        const attr = attributeDefinitions.find((a) => a.AttributeName === key.AttributeName)
+        return {
+          name: key.AttributeName!,
+          type: attr?.AttributeType || 'S',
+        }
+      })
+    }
+
     // Parse GSIs
     table.GlobalSecondaryIndexes?.forEach((gsi: GlobalSecondaryIndexDescription) => {
       indexes.push({
@@ -773,6 +808,8 @@ class DynamoDBService {
         type: 'GSI',
         partitionKey: getKeyFromSchema(gsi.KeySchema, 'HASH'),
         sortKey: getKeyFromSchema(gsi.KeySchema, 'RANGE'),
+        partitionKeys: getAllKeysFromSchema(gsi.KeySchema, 'HASH'),
+        sortKeys: getAllKeysFromSchema(gsi.KeySchema, 'RANGE'),
         projectionType: gsi.Projection?.ProjectionType || 'ALL',
         status: gsi.IndexStatus,
       })
@@ -785,6 +822,8 @@ class DynamoDBService {
         type: 'LSI',
         partitionKey: getKeyFromSchema(lsi.KeySchema, 'HASH'),
         sortKey: getKeyFromSchema(lsi.KeySchema, 'RANGE'),
+        partitionKeys: getAllKeysFromSchema(lsi.KeySchema, 'HASH'),
+        sortKeys: getAllKeysFromSchema(lsi.KeySchema, 'RANGE'),
         projectionType: lsi.Projection?.ProjectionType || 'ALL',
       })
     })

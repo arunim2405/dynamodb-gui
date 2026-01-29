@@ -15,12 +15,22 @@ const keyInfoSchema = z
   })
   .nullable()
 
+// Schema for key info array (multi-attribute support)
+const keyInfoArraySchema = z.array(
+  z.object({
+    name: z.string(),
+    type: z.string(),
+  })
+)
+
 // Schema for table information
 const tableInfoSchema = z.object({
   name: z.string(),
   status: z.string(),
   partitionKey: keyInfoSchema,
   sortKey: keyInfoSchema,
+  partitionKeys: keyInfoArraySchema,
+  sortKeys: keyInfoArraySchema,
   gsiCount: z.number(),
   lsiCount: z.number(),
   replicationRegions: z.array(z.string()),
@@ -36,6 +46,8 @@ const indexInfoSchema = z.object({
   type: z.enum(['GSI', 'LSI']),
   partitionKey: keyInfoSchema,
   sortKey: keyInfoSchema,
+  partitionKeys: keyInfoArraySchema,
+  sortKeys: keyInfoArraySchema,
   projectionType: z.string(),
   status: z.string().optional(),
 })

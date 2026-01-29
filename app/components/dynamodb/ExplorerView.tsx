@@ -130,11 +130,12 @@ interface PartitionKeyRowProps {
 function PartitionKeyRow({ keyValue, index, onChange, onRemove, canRemove }: PartitionKeyRowProps) {
   return (
     <div className="flex items-center gap-2 py-2">
-      <div className="w-40">
+      <div className="flex-1">
         <Input
           placeholder="Attribute name"
           value={keyValue.attributeName}
-          onChange={(e) => onChange(index, { ...keyValue, attributeName: e.target.value })}
+          disabled
+          className="bg-muted"
         />
       </div>
       <div className="flex-1">
@@ -144,18 +145,6 @@ function PartitionKeyRow({ keyValue, index, onChange, onRemove, canRemove }: Par
           onChange={(e) => onChange(index, { ...keyValue, value: e.target.value })}
         />
       </div>
-      <div className="w-28">
-        <Select
-          value={keyValue.type}
-          onChange={(e) => onChange(index, { ...keyValue, type: e.target.value as KeyAttributeValue['type'] })}
-          options={ATTRIBUTE_TYPES}
-        />
-      </div>
-      {canRemove && (
-        <Button variant="outline" size="icon" onClick={() => onRemove(index)}>
-          <X className="h-4 w-4" />
-        </Button>
-      )}
     </div>
   )
 }
@@ -184,7 +173,8 @@ function SortKeyRow({ sortCondition, index, onChange, onRemove, canRemove }: Sor
         <Input
           placeholder="Attribute name"
           value={sortCondition.attributeName}
-          onChange={(e) => onChange(index, { ...sortCondition, attributeName: e.target.value })}
+          disabled
+          className="bg-muted"
         />
       </div>
       <div className="w-44">
@@ -217,20 +207,6 @@ function SortKeyRow({ sortCondition, index, onChange, onRemove, canRemove }: Sor
             />
           </div>
         </>
-      )}
-      <div className="w-28">
-        <Select
-          value={sortCondition.type}
-          onChange={(e) =>
-            onChange(index, { ...sortCondition, type: e.target.value as SortKeyRowProps['sortCondition']['type'] })
-          }
-          options={ATTRIBUTE_TYPES}
-        />
-      </div>
-      {canRemove && (
-        <Button variant="outline" size="icon" onClick={() => onRemove(index)}>
-          <X className="h-4 w-4" />
-        </Button>
       )}
     </div>
   )
@@ -375,10 +351,19 @@ export function ExplorerView() {
       return {
         partitionKey: currentTable.table.partitionKey,
         sortKey: currentTable.table.sortKey,
+        partitionKeys: currentTable.table.partitionKeys || [],
+        sortKeys: currentTable.table.sortKeys || [],
       }
     }
     const index = currentTable.indexes.find((i) => i.name === selectedIndex)
-    return index ? { partitionKey: index.partitionKey, sortKey: index.sortKey } : null
+    return index
+      ? {
+          partitionKey: index.partitionKey,
+          sortKey: index.sortKey,
+          partitionKeys: index.partitionKeys || [],
+          sortKeys: index.sortKeys || [],
+        }
+      : null
   }, [currentTable, selectedIndex, currentTableName])
 
   // Build index options
@@ -401,6 +386,42 @@ export function ExplorerView() {
     }
   }, [currentTableName, selectedIndex])
 
+  // Sync partition and sort key values with the selected index's schema
+  React.useEffect(() => {
+    if (currentKeySchema && mode === 'query') {
+      // Initialize partition key values based on schema
+      const pkKeys = currentKeySchema.partitionKeys
+      if (pkKeys && pkKeys.length > 0) {
+        setPartitionKeyValues(
+          pkKeys.map((key) => ({
+            attributeName: key.name,
+            value: '',
+            type: key.type as 'S' | 'N' | 'B' | 'BOOL' | 'NULL',
+          }))
+        )
+      } else {
+        // Fallback to empty state if no multi-attribute keys
+        setPartitionKeyValues([{ attributeName: '', value: '', type: 'S' }])
+      }
+
+      // Initialize sort key conditions based on schema
+      const skKeys = currentKeySchema.sortKeys
+      if (skKeys && skKeys.length > 0) {
+        setSortKeyConditions(
+          skKeys.map((key) => ({
+            attributeName: key.name,
+            operator: 'EQ' as const,
+            value: '',
+            type: key.type as 'S' | 'N' | 'B' | 'BOOL' | 'NULL',
+          }))
+        )
+      } else {
+        // Fallback to empty state if no multi-attribute keys
+        setSortKeyConditions([{ attributeName: '', operator: 'EQ', value: '', type: 'S' }])
+      }
+    }
+  }, [selectedIndex, currentKeySchema, mode])
+
   const addFilter = () => {
     setFilters([...filters, { attributeName: '', condition: 'EQ', type: 'S', value: '' }])
   }
@@ -415,27 +436,10 @@ export function ExplorerView() {
     setFilters(filters.filter((_, i) => i !== index))
   }
 
-  // Multi-attribute key handlers
-  const addPartitionKeyValue = () => {
-    if (partitionKeyValues.length < 4) {
-      setPartitionKeyValues([...partitionKeyValues, { attributeName: '', value: '', type: 'S' }])
-    }
-  }
-
   const updatePartitionKeyValue = (index: number, keyValue: KeyAttributeValue) => {
     const newValues = [...partitionKeyValues]
     newValues[index] = keyValue
     setPartitionKeyValues(newValues)
-  }
-
-  const removePartitionKeyValue = (index: number) => {
-    setPartitionKeyValues(partitionKeyValues.filter((_, i) => i !== index))
-  }
-
-  const addSortKeyCondition = () => {
-    if (sortKeyConditions.length < 4) {
-      setSortKeyConditions([...sortKeyConditions, { attributeName: '', operator: 'EQ', value: '', type: 'S' }])
-    }
   }
 
   const updateSortKeyCondition = (
@@ -453,10 +457,6 @@ export function ExplorerView() {
     setSortKeyConditions(newConditions)
   }
 
-  const removeSortKeyCondition = (index: number) => {
-    setSortKeyConditions(sortKeyConditions.filter((_, i) => i !== index))
-  }
-
   const resetForm = () => {
     setMode('scan')
     setSelectedIndex(currentTableName || '')
@@ -467,6 +467,7 @@ export function ExplorerView() {
     setSortKeyValue2('')
     setSortDescending(false)
     setFilters([])
+    // Reset will re-trigger the useEffect to populate from schema
     setPartitionKeyValues([{ attributeName: '', value: '', type: 'S' }])
     setSortKeyConditions([{ attributeName: '', operator: 'EQ', value: '', type: 'S' }])
     setResults(null)
@@ -659,25 +660,25 @@ export function ExplorerView() {
                 <div>
                   <label className="text-sm font-medium mb-1 block">
                     Partition key
-                    <span className="text-muted-foreground text-xs ml-2 font-normal">
-                      (up to 4 attributes - see{' '}
-                      <a
-                        href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.DesignPattern.MultiAttributeKeys.html"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 underline"
-                      >
-                        AWS docs
-                      </a>
-                      )
-                    </span>
+                    {currentKeySchema.partitionKeys && currentKeySchema.partitionKeys.length > 1 && (
+                      <span className="text-muted-foreground text-xs ml-2 font-normal">
+                        (multi-attribute - see{' '}
+                        <a
+                          href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.DesignPattern.MultiAttributeKeys.html"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 underline"
+                        >
+                          AWS docs
+                        </a>
+                        )
+                      </span>
+                    )}
                   </label>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <div className="w-40">Attribute</div>
+                      <div className="flex-1">Attribute</div>
                       <div className="flex-1">Value</div>
-                      <div className="w-28">Type</div>
-                      <div className="w-10"></div>
                     </div>
                     {partitionKeyValues.map((keyValue, index) => (
                       <PartitionKeyRow
@@ -685,55 +686,45 @@ export function ExplorerView() {
                         keyValue={keyValue}
                         index={index}
                         onChange={updatePartitionKeyValue}
-                        onRemove={removePartitionKeyValue}
-                        canRemove={partitionKeyValues.length > 1}
+                        onRemove={() => {}}
+                        canRemove={false}
                       />
                     ))}
-                    {partitionKeyValues.length < 4 && (
-                      <Button variant="outline" size="sm" onClick={addPartitionKeyValue}>
-                        <Plus className="h-4 w-4 mr-1" />
-                        Add partition key attribute
-                      </Button>
-                    )}
                   </div>
                 </div>
 
                 {/* Multi-Attribute Sort Key */}
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Sort key - <span className="text-muted-foreground italic">optional</span>
-                    <span className="text-muted-foreground text-xs ml-2 font-normal">(up to 4 attributes)</span>
-                  </label>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <div className="w-40">Attribute</div>
-                      <div className="w-44">Condition</div>
-                      <div className="flex-1">Value</div>
-                      <div className="w-28">Type</div>
-                      <div className="w-10"></div>
-                    </div>
-                    {sortKeyConditions.map((sortCondition, index) => (
-                      <SortKeyRow
-                        key={index}
-                        sortCondition={sortCondition}
-                        index={index}
-                        onChange={updateSortKeyCondition}
-                        onRemove={removeSortKeyCondition}
-                        canRemove={sortKeyConditions.length > 1}
-                      />
-                    ))}
-                    {sortKeyConditions.length < 4 && (
-                      <Button variant="outline" size="sm" onClick={addSortKeyCondition}>
-                        <Plus className="h-4 w-4 mr-1" />
-                        Add sort key attribute
-                      </Button>
-                    )}
-                    <div className="flex items-center gap-2 pt-2">
-                      <Checkbox checked={sortDescending} onCheckedChange={(checked) => setSortDescending(checked)} />
-                      <label className="text-sm">Sort descending</label>
+                {sortKeyConditions.length > 0 && sortKeyConditions[0].attributeName && (
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">
+                      Sort key - <span className="text-muted-foreground italic">optional</span>
+                      {currentKeySchema.sortKeys && currentKeySchema.sortKeys.length > 1 && (
+                        <span className="text-muted-foreground text-xs ml-2 font-normal">(multi-attribute)</span>
+                      )}
+                    </label>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="w-40">Attribute</div>
+                        <div className="w-44">Condition</div>
+                        <div className="flex-1">Value</div>
+                      </div>
+                      {sortKeyConditions.map((sortCondition, index) => (
+                        <SortKeyRow
+                          key={index}
+                          sortCondition={sortCondition}
+                          index={index}
+                          onChange={updateSortKeyCondition}
+                          onRemove={() => {}}
+                          canRemove={false}
+                        />
+                      ))}
+                      <div className="flex items-center gap-2 pt-2">
+                        <Checkbox checked={sortDescending} onCheckedChange={(checked) => setSortDescending(checked)} />
+                        <label className="text-sm">Sort descending</label>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
