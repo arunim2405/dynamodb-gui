@@ -131,12 +131,7 @@ function PartitionKeyRow({ keyValue, index, onChange, onRemove, canRemove }: Par
   return (
     <div className="flex items-center gap-2 py-2">
       <div className="flex-1">
-        <Input
-          placeholder="Attribute name"
-          value={keyValue.attributeName}
-          disabled
-          className="bg-muted"
-        />
+        <Input placeholder="Attribute name" value={keyValue.attributeName} disabled className="bg-muted" />
       </div>
       <div className="flex-1">
         <Input
@@ -170,12 +165,7 @@ function SortKeyRow({ sortCondition, index, onChange, onRemove, canRemove }: Sor
   return (
     <div className="flex items-center gap-2 py-2">
       <div className="w-40">
-        <Input
-          placeholder="Attribute name"
-          value={sortCondition.attributeName}
-          disabled
-          className="bg-muted"
-        />
+        <Input placeholder="Attribute name" value={sortCondition.attributeName} disabled className="bg-muted" />
       </div>
       <div className="w-44">
         <Select
