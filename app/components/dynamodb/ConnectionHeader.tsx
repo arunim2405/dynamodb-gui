@@ -84,7 +84,7 @@ export function ConnectionHeader() {
       {connectionInfo && (
         <div className="px-4 py-1.5 bg-muted/30 border-t border-border/30 text-xs text-muted-foreground flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+            <div className="w-1.5 h-1.5 rounded-full bg-success"></div>
             <span>
               Connected to <span className="text-foreground font-medium">{connectionInfo.profile}</span> in <span className="text-foreground font-medium">{connectionInfo.region}</span>
             </span>

@@ -23,8 +23,8 @@ function Alert({ className, variant = 'default', children, ...props }: AlertProp
         'relative w-full rounded-md border p-3',
         variant === 'default' && 'bg-muted/30 border-border/50 text-foreground',
         variant === 'destructive' && 'border-destructive/30 text-destructive bg-destructive/10',
-        variant === 'success' && 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10',
-        variant === 'info' && 'border-sky-500/30 text-sky-400 bg-sky-500/10',
+        variant === 'success' && 'border-success/30 text-success bg-success/10',
+        variant === 'info' && 'border-primary/30 text-primary bg-primary/10',
         className
       )}
       {...props}

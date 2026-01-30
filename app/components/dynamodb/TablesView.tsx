@@ -261,7 +261,7 @@ export function TablesView() {
                   </td>
                   <td className="px-4 py-2.5 align-middle">
                     {table.deletionProtection ? (
-                      <div className="flex items-center gap-1.5 text-emerald-400">
+                      <div className="flex items-center gap-1.5 text-success">
                         <Shield className="h-3.5 w-3.5" />
                         <span className="text-xs font-medium">On</span>
                       </div>
@@ -278,10 +278,10 @@ export function TablesView() {
                         e.stopPropagation()
                         toggleFavorite(table.name)
                       }}
-                      className="hover:text-amber-400 transition-colors p-1 rounded hover:bg-muted/50"
+                      className="hover:text-warning transition-colors p-1 rounded hover:bg-muted/50"
                     >
                       {favorites.has(table.name) ? (
-                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                        <Star className="h-4 w-4 fill-warning text-warning" />
                       ) : (
                         <StarOff className="h-4 w-4 text-muted-foreground/50" />
                       )}
