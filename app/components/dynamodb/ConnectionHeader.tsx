@@ -28,39 +28,41 @@ export function ConnectionHeader() {
   const regionOptions = AWS_REGIONS.map((r) => ({ value: r.value, label: `${r.value} - ${r.label}` }))
 
   return (
-    <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="border-b border-border/50 bg-card/50 backdrop-blur-sm">
       {/* Top connection bar */}
-      <div className="flex items-center gap-4 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Database className="h-5 w-5 text-primary" />
-          <span className="font-semibold text-lg">DynamoDB Desktop</span>
+      <div className="flex items-center gap-4 px-4 py-2.5">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 rounded-md bg-primary/10">
+            <Database className="h-4 w-4 text-primary" />
+          </div>
+          <span className="font-semibold text-sm tracking-tight">DynamoDB Desktop</span>
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-3 ml-auto">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Profile:</span>
+            <span className="text-xs text-muted-foreground font-medium">Profile:</span>
             <Select
               value={selectedProfile}
               onChange={(e) => setSelectedProfile(e.target.value)}
               options={profileOptions}
-              className="w-40"
+              className="w-36 h-8 text-xs"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Region:</span>
+            <span className="text-xs text-muted-foreground font-medium">Region:</span>
             <Select
               value={selectedRegion}
               onChange={(e) => setSelectedRegion(e.target.value)}
               options={regionOptions}
-              className="w-60"
+              className="w-52 h-8 text-xs"
             />
           </div>
 
-          <Button onClick={connect} disabled={isConnecting} size="sm">
+          <Button onClick={connect} disabled={isConnecting} size="sm" className="h-8">
             {isConnecting ? (
               <>
-                <Spinner className="h-4 w-4" />
+                <Spinner className="h-3.5 w-3.5" />
                 Connecting...
               </>
             ) : connectionInfo ? (
@@ -71,8 +73,8 @@ export function ConnectionHeader() {
           </Button>
 
           {connectionInfo && (
-            <Button onClick={refreshTables} disabled={isLoadingTables} variant="outline" size="sm">
-              <RefreshCw className={`h-4 w-4 ${isLoadingTables ? 'animate-spin' : ''}`} />
+            <Button onClick={refreshTables} disabled={isLoadingTables} variant="outline" size="sm" className="h-8 w-8 p-0">
+              <RefreshCw className={`h-3.5 w-3.5 ${isLoadingTables ? 'animate-spin' : ''}`} />
             </Button>
           )}
         </div>
@@ -80,30 +82,33 @@ export function ConnectionHeader() {
 
       {/* Connection status */}
       {connectionInfo && (
-        <div className="px-4 py-1.5 bg-muted/50 border-t text-xs text-muted-foreground flex items-center gap-4">
-          <span>
-            Connected to <strong>{connectionInfo.profile}</strong> in <strong>{connectionInfo.region}</strong>
-          </span>
-          <span className="text-muted-foreground/50">|</span>
-          <span>Account: {connectionInfo.accountId}</span>
+        <div className="px-4 py-1.5 bg-muted/30 border-t border-border/30 text-xs text-muted-foreground flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-success"></div>
+            <span>
+              Connected to <span className="text-foreground font-medium">{connectionInfo.profile}</span> in <span className="text-foreground font-medium">{connectionInfo.region}</span>
+            </span>
+          </div>
+          <span className="text-border">|</span>
+          <span>Account: <span className="font-mono text-foreground/80">{connectionInfo.accountId}</span></span>
         </div>
       )}
 
       {/* Breadcrumb for explorer view */}
       {currentView === 'explorer' && currentTableName && (
-        <div className="px-4 py-2 border-t flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={goBack} className="gap-1">
-            <ChevronLeft className="h-4 w-4" />
+        <div className="px-4 py-2 border-t border-border/30 flex items-center gap-2 bg-muted/20">
+          <Button variant="ghost" size="sm" onClick={goBack} className="gap-1 h-7 text-xs text-muted-foreground hover:text-foreground">
+            <ChevronLeft className="h-3.5 w-3.5" />
             Tables
           </Button>
-          <span className="text-muted-foreground">/</span>
-          <span className="font-medium">{currentTableName}</span>
+          <span className="text-border">/</span>
+          <span className="font-medium text-sm">{currentTableName}</span>
         </div>
       )}
 
       {/* Error display */}
       {connectionError && (
-        <div className="px-4 py-2 border-t">
+        <div className="px-4 py-2 border-t border-border/30">
           <Alert variant="destructive">
             <AlertDescription>{connectionError}</AlertDescription>
           </Alert>

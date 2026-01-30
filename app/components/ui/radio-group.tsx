@@ -36,8 +36,10 @@ function RadioGroupItem({ value, label, checked, onChange, className }: RadioGro
   return (
     <label
       className={cn(
-        'flex cursor-pointer items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-colors',
-        checked ? 'border-primary bg-primary/10 text-primary' : 'border-input bg-background hover:bg-muted/50',
+        'flex cursor-pointer items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-all',
+        checked
+          ? 'border-primary/50 bg-primary/10 text-primary shadow-sm'
+          : 'border-border/50 bg-transparent text-muted-foreground hover:bg-muted/30 hover:text-foreground hover:border-border',
         className
       )}
     >

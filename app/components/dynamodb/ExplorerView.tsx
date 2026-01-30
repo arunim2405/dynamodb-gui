@@ -73,46 +73,46 @@ function FilterRow({ filter, index, onChange, onRemove }: FilterRowProps) {
   const needsSecondValue = filter.condition === 'BETWEEN'
 
   return (
-    <div className="flex items-center gap-2 py-2">
+    <div className="flex items-center gap-2 py-1.5">
       <Input
         placeholder="Attribute name"
         value={filter.attributeName}
         onChange={(e) => onChange(index, { ...filter, attributeName: e.target.value })}
-        className="w-40"
+        className="w-36 h-8 text-xs"
       />
       <Select
         value={filter.condition}
         onChange={(e) => onChange(index, { ...filter, condition: e.target.value as ScanQueryFilter['condition'] })}
         options={FILTER_CONDITIONS}
-        className="w-44"
+        className="w-40 h-8 text-xs"
       />
       <Select
         value={filter.type}
         onChange={(e) => onChange(index, { ...filter, type: e.target.value as ScanQueryFilter['type'] })}
         options={ATTRIBUTE_TYPES}
-        className="w-28"
+        className="w-24 h-8 text-xs"
       />
       {needsValue && (
         <Input
           placeholder="Value"
           value={filter.value}
           onChange={(e) => onChange(index, { ...filter, value: e.target.value })}
-          className="w-40"
+          className="w-36 h-8 text-xs"
         />
       )}
       {needsSecondValue && (
         <>
-          <span className="text-muted-foreground text-sm">and</span>
+          <span className="text-muted-foreground text-xs">and</span>
           <Input
             placeholder="Value 2"
             value={filter.value2 || ''}
             onChange={(e) => onChange(index, { ...filter, value2: e.target.value })}
-            className="w-40"
+            className="w-36 h-8 text-xs"
           />
         </>
       )}
-      <Button variant="outline" size="icon" onClick={() => onRemove(index)}>
-        <X className="h-4 w-4" />
+      <Button variant="ghost" size="icon" onClick={() => onRemove(index)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+        <X className="h-3.5 w-3.5" />
       </Button>
     </div>
   )
@@ -129,15 +129,16 @@ interface PartitionKeyRowProps {
 
 function PartitionKeyRow({ keyValue, index, onChange, onRemove, canRemove }: PartitionKeyRowProps) {
   return (
-    <div className="flex items-center gap-2 py-2">
+    <div className="flex items-center gap-2 py-1.5">
       <div className="flex-1">
-        <Input placeholder="Attribute name" value={keyValue.attributeName} disabled className="bg-muted" />
+        <Input placeholder="Attribute name" value={keyValue.attributeName} disabled className="bg-muted/30 h-8 text-xs" />
       </div>
       <div className="flex-1">
         <Input
           placeholder="Enter attribute value"
           value={keyValue.value}
           onChange={(e) => onChange(index, { ...keyValue, value: e.target.value })}
+          className="h-8 text-xs"
         />
       </div>
     </div>
@@ -163,11 +164,11 @@ function SortKeyRow({ sortCondition, index, onChange, onRemove, canRemove }: Sor
   const needsSecondValue = sortCondition.operator === 'BETWEEN'
 
   return (
-    <div className="flex items-center gap-2 py-2">
-      <div className="w-40">
-        <Input placeholder="Attribute name" value={sortCondition.attributeName} disabled className="bg-muted" />
+    <div className="flex items-center gap-2 py-1.5">
+      <div className="w-36">
+        <Input placeholder="Attribute name" value={sortCondition.attributeName} disabled className="bg-muted/30 h-8 text-xs" />
       </div>
-      <div className="w-44">
+      <div className="w-40">
         <Select
           value={sortCondition.operator}
           onChange={(e) =>
@@ -177,6 +178,7 @@ function SortKeyRow({ sortCondition, index, onChange, onRemove, canRemove }: Sor
             })
           }
           options={SORT_KEY_OPERATORS}
+          className="h-8 text-xs"
         />
       </div>
       <div className="flex-1">
@@ -184,16 +186,18 @@ function SortKeyRow({ sortCondition, index, onChange, onRemove, canRemove }: Sor
           placeholder="Enter attribute value"
           value={sortCondition.value}
           onChange={(e) => onChange(index, { ...sortCondition, value: e.target.value })}
+          className="h-8 text-xs"
         />
       </div>
       {needsSecondValue && (
         <>
-          <span className="text-muted-foreground text-sm">and</span>
+          <span className="text-muted-foreground text-xs">and</span>
           <div className="flex-1">
             <Input
               placeholder="Value 2"
               value={sortCondition.value2 || ''}
               onChange={(e) => onChange(index, { ...sortCondition, value2: e.target.value })}
+              className="h-8 text-xs"
             />
           </div>
         </>
@@ -224,34 +228,34 @@ function JsonTreeView({ data, level = 0 }: JsonTreeViewProps) {
 
   const renderValue = (key: string, value: unknown): React.ReactNode => {
     if (value === null) {
-      return <span className="text-muted-foreground italic">null</span>
+      return <span className="text-muted-foreground/70 italic">null</span>
     }
 
     if (typeof value === 'boolean') {
-      return <span className="text-blue-500">{value.toString()}</span>
+      return <span className="text-sky-400">{value.toString()}</span>
     }
 
     if (typeof value === 'number') {
-      return <span className="text-green-500">{value}</span>
+      return <span className="text-emerald-400">{value}</span>
     }
 
     if (typeof value === 'string') {
-      return <span className="text-amber-500">"{value}"</span>
+      return <span className="text-amber-400">"{value}"</span>
     }
 
     if (Array.isArray(value)) {
       const isExpanded = expanded.has(key)
       return (
         <div>
-          <button onClick={() => toggleExpand(key)} className="flex items-center gap-1 hover:bg-muted/50 rounded px-1">
-            {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          <button onClick={() => toggleExpand(key)} className="flex items-center gap-1 hover:bg-muted/30 rounded px-1 -ml-1 transition-colors">
+            {isExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
             <span className="text-muted-foreground">Array [{value.length}]</span>
           </button>
           {isExpanded && (
-            <div className="ml-4 border-l pl-2">
+            <div className="ml-4 border-l border-border/50 pl-3 mt-1">
               {value.map((item, i) => (
-                <div key={i} className="flex gap-2">
-                  <span className="text-muted-foreground">{i}:</span>
+                <div key={i} className="flex gap-2 py-0.5">
+                  <span className="text-muted-foreground/70">{i}:</span>
                   {renderValue(`${key}.${i}`, item)}
                 </div>
               ))}
@@ -265,12 +269,12 @@ function JsonTreeView({ data, level = 0 }: JsonTreeViewProps) {
       const isExpanded = expanded.has(key)
       return (
         <div>
-          <button onClick={() => toggleExpand(key)} className="flex items-center gap-1 hover:bg-muted/50 rounded px-1">
-            {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          <button onClick={() => toggleExpand(key)} className="flex items-center gap-1 hover:bg-muted/30 rounded px-1 -ml-1 transition-colors">
+            {isExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
             <span className="text-muted-foreground">Object</span>
           </button>
           {isExpanded && (
-            <div className="ml-4 border-l pl-2">
+            <div className="ml-4 border-l border-border/50 pl-3 mt-1">
               <JsonTreeView data={value as Record<string, unknown>} level={level + 1} />
             </div>
           )}
@@ -282,10 +286,10 @@ function JsonTreeView({ data, level = 0 }: JsonTreeViewProps) {
   }
 
   return (
-    <div className="font-mono text-xs space-y-1">
+    <div className="font-mono text-xs space-y-0.5 leading-relaxed">
       {Object.entries(data).map(([key, value]) => (
         <div key={key} className="flex gap-2">
-          <span className="text-purple-500 shrink-0">{key}:</span>
+          <span className="text-violet-400 shrink-0">{key}:</span>
           {renderValue(key, value)}
         </div>
       ))}
@@ -614,41 +618,43 @@ export function ExplorerView() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Query Builder */}
-      <div className="border-b p-4 space-y-4">
-        <Collapsible title={<span className="text-primary font-medium">Scan or query items</span>} defaultOpen>
+      <div className="border-b border-border/50 px-5 py-4 space-y-3 bg-card/20">
+        <Collapsible title={<span className="text-primary font-medium text-sm">Scan or query items</span>} defaultOpen>
           <div className="space-y-4">
             {/* Mode Toggle */}
             <RadioGroup value={mode} onValueChange={(v) => setMode(v as 'scan' | 'query')}>
-              <RadioGroupItem value="scan" label="Scan" className="w-32" />
-              <RadioGroupItem value="query" label="Query" className="w-32" />
+              <RadioGroupItem value="scan" label="Scan" className="w-28 h-8 text-xs" />
+              <RadioGroupItem value="query" label="Query" className="w-28 h-8 text-xs" />
             </RadioGroup>
 
             {/* Table/Index Selection */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">Select a table or index</label>
+                <label className="text-xs font-medium mb-1.5 block text-muted-foreground uppercase tracking-wide">Table or Index</label>
                 <Select
                   value={selectedIndex}
                   onChange={(e) => setSelectedIndex(e.target.value)}
                   options={indexOptions}
+                  className="h-8 text-xs"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Select attribute projection</label>
+                <label className="text-xs font-medium mb-1.5 block text-muted-foreground uppercase tracking-wide">Attribute Projection</label>
                 <Select
                   value={projectionType}
                   onChange={(e) => setProjectionType(e.target.value as typeof projectionType)}
                   options={PROJECTION_TYPES}
+                  className="h-8 text-xs"
                 />
               </div>
             </div>
 
             {/* Query Mode: Key Conditions */}
             {mode === 'query' && currentKeySchema && (
-              <div className="space-y-4 pt-4 border-t">
+              <div className="space-y-4 pt-4 border-t border-border/30">
                 {/* Multi-Attribute Partition Key */}
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
+                <div className="bg-muted/20 rounded-md p-3 border border-border/30">
+                  <label className="text-xs font-medium mb-2 block text-foreground">
                     Partition key
                     {currentKeySchema.partitionKeys && currentKeySchema.partitionKeys.length > 1 && (
                       <span className="text-muted-foreground text-xs ml-2 font-normal">
@@ -657,7 +663,7 @@ export function ExplorerView() {
                           href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.DesignPattern.MultiAttributeKeys.html"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-500 underline"
+                          className="text-primary underline hover:text-primary/80"
                         >
                           AWS docs
                         </a>
@@ -665,8 +671,8 @@ export function ExplorerView() {
                       </span>
                     )}
                   </label>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground/70 uppercase tracking-wide">
                       <div className="flex-1">Attribute</div>
                       <div className="flex-1">Value</div>
                     </div>
@@ -685,17 +691,17 @@ export function ExplorerView() {
 
                 {/* Multi-Attribute Sort Key */}
                 {sortKeyConditions.length > 0 && sortKeyConditions[0].attributeName && (
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">
-                      Sort key - <span className="text-muted-foreground italic">optional</span>
+                  <div className="bg-muted/20 rounded-md p-3 border border-border/30">
+                    <label className="text-xs font-medium mb-2 block text-foreground">
+                      Sort key <span className="text-muted-foreground italic font-normal">— optional</span>
                       {currentKeySchema.sortKeys && currentKeySchema.sortKeys.length > 1 && (
                         <span className="text-muted-foreground text-xs ml-2 font-normal">(multi-attribute)</span>
                       )}
                     </label>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <div className="w-40">Attribute</div>
-                        <div className="w-44">Condition</div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground/70 uppercase tracking-wide">
+                        <div className="w-36">Attribute</div>
+                        <div className="w-40">Condition</div>
                         <div className="flex-1">Value</div>
                       </div>
                       {sortKeyConditions.map((sortCondition, index) => (
@@ -710,7 +716,7 @@ export function ExplorerView() {
                       ))}
                       <div className="flex items-center gap-2 pt-2">
                         <Checkbox checked={sortDescending} onCheckedChange={(checked) => setSortDescending(checked)} />
-                        <label className="text-sm">Sort descending</label>
+                        <label className="text-xs text-muted-foreground">Sort descending</label>
                       </div>
                     </div>
                   </div>
@@ -723,24 +729,24 @@ export function ExplorerView() {
         {/* Filters */}
         <Collapsible
           title={
-            <span className="text-primary font-medium">
-              Filters - <span className="text-muted-foreground italic">optional</span>
+            <span className="text-primary font-medium text-sm">
+              Filters <span className="text-muted-foreground italic font-normal text-xs">— optional</span>
             </span>
           }
         >
-          <div className="space-y-2">
+          <div className="space-y-1">
             {filters.map((filter, index) => (
               <FilterRow key={index} filter={filter} index={index} onChange={updateFilter} onRemove={removeFilter} />
             ))}
-            <Button variant="outline" size="sm" onClick={addFilter}>
-              <Plus className="h-4 w-4 mr-1" />
+            <Button variant="ghost" size="sm" onClick={addFilter} className="h-7 text-xs text-muted-foreground hover:text-foreground mt-1">
+              <Plus className="h-3.5 w-3.5" />
               Add filter
             </Button>
           </div>
         </Collapsible>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-2">
+        <div className="flex items-center gap-2 pt-1">
           <Button
             onClick={() => executeQuery()}
             disabled={
@@ -749,21 +755,23 @@ export function ExplorerView() {
                 !partitionKeyValue &&
                 partitionKeyValues.filter((kv) => kv.attributeName && kv.value).length === 0)
             }
+            size="sm"
+            className="h-8"
           >
             {isLoading ? (
               <>
-                <Spinner className="h-4 w-4 mr-1" />
+                <Spinner className="h-3.5 w-3.5" />
                 Running...
               </>
             ) : (
               <>
-                <Play className="h-4 w-4 mr-1" />
+                <Play className="h-3.5 w-3.5" />
                 Run
               </>
             )}
           </Button>
-          <Button variant="outline" onClick={resetForm}>
-            <RotateCcw className="h-4 w-4 mr-1" />
+          <Button variant="outline" onClick={resetForm} size="sm" className="h-8">
+            <RotateCcw className="h-3.5 w-3.5" />
             Reset
           </Button>
         </div>
@@ -771,7 +779,7 @@ export function ExplorerView() {
 
       {/* Error */}
       {error && (
-        <div className="p-4 border-b">
+        <div className="px-5 py-3 border-b border-border/50">
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -781,20 +789,20 @@ export function ExplorerView() {
       {/* Results */}
       <div className="flex-1 overflow-auto">
         {results && (
-          <div className="p-4">
+          <div className="px-5 py-4">
             {/* Results Header */}
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <h3 className="font-medium">Items returned: {results.count}</h3>
-                <Badge variant="outline">Scanned: {results.scannedCount}</Badge>
+              <div className="flex items-center gap-3">
+                <h3 className="text-sm font-medium">Items returned: <span className="text-primary tabular-nums">{results.count}</span></h3>
+                <Badge variant="outline" className="text-xs">Scanned: {results.scannedCount}</Badge>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleCreateItem}>
-                  <FilePlus className="h-4 w-4 mr-1" />
+                <Button variant="outline" size="sm" onClick={handleCreateItem} className="h-7 text-xs">
+                  <FilePlus className="h-3.5 w-3.5" />
                   Create item
                 </Button>
-                <Button variant="outline" size="sm" onClick={copyResultsToClipboard}>
-                  <Copy className="h-4 w-4 mr-1" />
+                <Button variant="ghost" size="sm" onClick={copyResultsToClipboard} className="h-7 text-xs text-muted-foreground hover:text-foreground">
+                  <Copy className="h-3.5 w-3.5" />
                   Copy JSON
                 </Button>
               </div>
@@ -805,27 +813,27 @@ export function ExplorerView() {
               {results.items.map((item, index) => (
                 <div
                   key={index}
-                  className="border rounded-lg p-3 bg-card hover:bg-muted/50 transition-colors group relative"
+                  className="border border-border/40 rounded-md p-3 bg-card/50 hover:bg-muted/30 hover:border-border/60 transition-all group relative"
                 >
                   {/* Item actions */}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7"
+                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
                       onClick={() => handleEditItem(item)}
                       title="Edit item"
                     >
-                      <Pencil className="h-3.5 w-3.5" />
+                      <Pencil className="h-3 w-3" />
                     </Button>
                     <Button
                       variant={deleteConfirm === index ? 'destructive' : 'ghost'}
                       size="icon"
-                      className="h-7 w-7"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
                       onClick={() => handleDeleteItem(item, index)}
                       title={deleteConfirm === index ? 'Click again to confirm' : 'Delete item'}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                   <JsonTreeView data={item} />
@@ -836,7 +844,7 @@ export function ExplorerView() {
             {/* Load More */}
             {lastEvaluatedKey && (
               <div className="mt-4 text-center">
-                <Button variant="outline" onClick={() => executeQuery(true)} disabled={isLoading}>
+                <Button variant="outline" onClick={() => executeQuery(true)} disabled={isLoading} size="sm" className="h-8">
                   {isLoading ? 'Loading...' : 'Load More'}
                 </Button>
               </div>
@@ -845,11 +853,11 @@ export function ExplorerView() {
         )}
 
         {!results && !isLoading && !error && (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[200px]">
             <div className="text-muted-foreground">
-              <p className="mb-2">Configure your {mode === 'scan' ? 'scan' : 'query'} and click Run to see results.</p>
+              <p className="text-sm mb-1">Configure your {mode === 'scan' ? 'scan' : 'query'} and click Run to see results.</p>
               {mode === 'query' && (
-                <p className="text-sm">Query requires at least one partition key attribute with a value.</p>
+                <p className="text-xs text-muted-foreground/70">Query requires at least one partition key attribute with a value.</p>
               )}
             </div>
           </div>
