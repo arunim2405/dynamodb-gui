@@ -11,7 +11,12 @@ import { Collapsible } from '@/app/components/ui/collapsible'
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group'
 import { Checkbox } from '@/app/components/ui/checkbox'
 import { Play, Plus, X, RotateCcw, ChevronDown, ChevronRight, Copy, Pencil, Trash2, FilePlus } from 'lucide-react'
-import type { ScanQueryRequest, ScanQueryFilter, ScanQueryResult } from '@/lib/services/dynamodb-service'
+import type {
+  ScanQueryRequest,
+  ScanQueryFilter,
+  ScanQueryResult,
+  KeyAttributeValue,
+} from '@/lib/services/dynamodb-service'
 
 // Sort key operators for Query mode
 const SORT_KEY_OPERATORS = [
@@ -109,6 +114,90 @@ function FilterRow({ filter, index, onChange, onRemove }: FilterRowProps) {
       <Button variant="outline" size="icon" onClick={() => onRemove(index)}>
         <X className="h-4 w-4" />
       </Button>
+    </div>
+  )
+}
+
+// Interface and component for multi-attribute partition key
+interface PartitionKeyRowProps {
+  keyValue: KeyAttributeValue
+  index: number
+  onChange: (index: number, keyValue: KeyAttributeValue) => void
+  onRemove: (index: number) => void
+  canRemove: boolean
+}
+
+function PartitionKeyRow({ keyValue, index, onChange, onRemove, canRemove }: PartitionKeyRowProps) {
+  return (
+    <div className="flex items-center gap-2 py-2">
+      <div className="flex-1">
+        <Input placeholder="Attribute name" value={keyValue.attributeName} disabled className="bg-muted" />
+      </div>
+      <div className="flex-1">
+        <Input
+          placeholder="Enter attribute value"
+          value={keyValue.value}
+          onChange={(e) => onChange(index, { ...keyValue, value: e.target.value })}
+        />
+      </div>
+    </div>
+  )
+}
+
+// Interface and component for multi-attribute sort key
+interface SortKeyRowProps {
+  sortCondition: {
+    attributeName: string
+    operator: 'EQ' | 'LE' | 'LT' | 'GE' | 'GT' | 'BETWEEN' | 'BEGINS_WITH'
+    value: string
+    value2?: string
+    type: 'S' | 'N' | 'B' | 'BOOL' | 'NULL'
+  }
+  index: number
+  onChange: (index: number, sortCondition: SortKeyRowProps['sortCondition']) => void
+  onRemove: (index: number) => void
+  canRemove: boolean
+}
+
+function SortKeyRow({ sortCondition, index, onChange, onRemove, canRemove }: SortKeyRowProps) {
+  const needsSecondValue = sortCondition.operator === 'BETWEEN'
+
+  return (
+    <div className="flex items-center gap-2 py-2">
+      <div className="w-40">
+        <Input placeholder="Attribute name" value={sortCondition.attributeName} disabled className="bg-muted" />
+      </div>
+      <div className="w-44">
+        <Select
+          value={sortCondition.operator}
+          onChange={(e) =>
+            onChange(index, {
+              ...sortCondition,
+              operator: e.target.value as SortKeyRowProps['sortCondition']['operator'],
+            })
+          }
+          options={SORT_KEY_OPERATORS}
+        />
+      </div>
+      <div className="flex-1">
+        <Input
+          placeholder="Enter attribute value"
+          value={sortCondition.value}
+          onChange={(e) => onChange(index, { ...sortCondition, value: e.target.value })}
+        />
+      </div>
+      {needsSecondValue && (
+        <>
+          <span className="text-muted-foreground text-sm">and</span>
+          <div className="flex-1">
+            <Input
+              placeholder="Value 2"
+              value={sortCondition.value2 || ''}
+              onChange={(e) => onChange(index, { ...sortCondition, value2: e.target.value })}
+            />
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -219,6 +308,20 @@ export function ExplorerView() {
   const [filters, setFilters] = React.useState<ScanQueryFilter[]>([])
   const [limit] = React.useState<number>(50)
 
+  // Multi-attribute key state
+  const [partitionKeyValues, setPartitionKeyValues] = React.useState<KeyAttributeValue[]>([
+    { attributeName: '', value: '', type: 'S' },
+  ])
+  const [sortKeyConditions, setSortKeyConditions] = React.useState<
+    {
+      attributeName: string
+      operator: 'EQ' | 'LE' | 'LT' | 'GE' | 'GT' | 'BETWEEN' | 'BEGINS_WITH'
+      value: string
+      value2?: string
+      type: 'S' | 'N' | 'B' | 'BOOL' | 'NULL'
+    }[]
+  >([{ attributeName: '', operator: 'EQ', value: '', type: 'S' }])
+
   // Results state
   const [results, setResults] = React.useState<ScanQueryResult | null>(null)
   const [isLoading, setIsLoading] = React.useState(false)
@@ -238,10 +341,19 @@ export function ExplorerView() {
       return {
         partitionKey: currentTable.table.partitionKey,
         sortKey: currentTable.table.sortKey,
+        partitionKeys: currentTable.table.partitionKeys || [],
+        sortKeys: currentTable.table.sortKeys || [],
       }
     }
     const index = currentTable.indexes.find((i) => i.name === selectedIndex)
-    return index ? { partitionKey: index.partitionKey, sortKey: index.sortKey } : null
+    return index
+      ? {
+          partitionKey: index.partitionKey,
+          sortKey: index.sortKey,
+          partitionKeys: index.partitionKeys || [],
+          sortKeys: index.sortKeys || [],
+        }
+      : null
   }, [currentTable, selectedIndex, currentTableName])
 
   // Build index options
@@ -264,6 +376,42 @@ export function ExplorerView() {
     }
   }, [currentTableName, selectedIndex])
 
+  // Sync partition and sort key values with the selected index's schema
+  React.useEffect(() => {
+    if (currentKeySchema && mode === 'query') {
+      // Initialize partition key values based on schema
+      const pkKeys = currentKeySchema.partitionKeys
+      if (pkKeys && pkKeys.length > 0) {
+        setPartitionKeyValues(
+          pkKeys.map((key) => ({
+            attributeName: key.name,
+            value: '',
+            type: key.type as 'S' | 'N' | 'B' | 'BOOL' | 'NULL',
+          }))
+        )
+      } else {
+        // Fallback to empty state if no multi-attribute keys
+        setPartitionKeyValues([{ attributeName: '', value: '', type: 'S' }])
+      }
+
+      // Initialize sort key conditions based on schema
+      const skKeys = currentKeySchema.sortKeys
+      if (skKeys && skKeys.length > 0) {
+        setSortKeyConditions(
+          skKeys.map((key) => ({
+            attributeName: key.name,
+            operator: 'EQ' as const,
+            value: '',
+            type: key.type as 'S' | 'N' | 'B' | 'BOOL' | 'NULL',
+          }))
+        )
+      } else {
+        // Fallback to empty state if no multi-attribute keys
+        setSortKeyConditions([{ attributeName: '', operator: 'EQ', value: '', type: 'S' }])
+      }
+    }
+  }, [selectedIndex, currentKeySchema, mode])
+
   const addFilter = () => {
     setFilters([...filters, { attributeName: '', condition: 'EQ', type: 'S', value: '' }])
   }
@@ -278,6 +426,27 @@ export function ExplorerView() {
     setFilters(filters.filter((_, i) => i !== index))
   }
 
+  const updatePartitionKeyValue = (index: number, keyValue: KeyAttributeValue) => {
+    const newValues = [...partitionKeyValues]
+    newValues[index] = keyValue
+    setPartitionKeyValues(newValues)
+  }
+
+  const updateSortKeyCondition = (
+    index: number,
+    sortCondition: {
+      attributeName: string
+      operator: 'EQ' | 'LE' | 'LT' | 'GE' | 'GT' | 'BETWEEN' | 'BEGINS_WITH'
+      value: string
+      value2?: string
+      type: 'S' | 'N' | 'B' | 'BOOL' | 'NULL'
+    }
+  ) => {
+    const newConditions = [...sortKeyConditions]
+    newConditions[index] = sortCondition
+    setSortKeyConditions(newConditions)
+  }
+
   const resetForm = () => {
     setMode('scan')
     setSelectedIndex(currentTableName || '')
@@ -288,6 +457,9 @@ export function ExplorerView() {
     setSortKeyValue2('')
     setSortDescending(false)
     setFilters([])
+    // Reset will re-trigger the useEffect to populate from schema
+    setPartitionKeyValues([{ attributeName: '', value: '', type: 'S' }])
+    setSortKeyConditions([{ attributeName: '', operator: 'EQ', value: '', type: 'S' }])
     setResults(null)
     setError(null)
     setLastEvaluatedKey(undefined)
@@ -312,8 +484,21 @@ export function ExplorerView() {
       }
 
       if (mode === 'query') {
-        request.partitionKeyValue = partitionKeyValue
-        if (sortKeyValue && currentKeySchema?.sortKey) {
+        // Use multi-attribute keys if available, otherwise use legacy single key
+        const validPartitionKeyValues = partitionKeyValues.filter((kv) => kv.attributeName && kv.value)
+        const validSortKeyConditions = sortKeyConditions.filter((sc) => sc.attributeName && sc.value)
+
+        if (validPartitionKeyValues.length > 0) {
+          request.partitionKeyValues = validPartitionKeyValues
+        } else if (partitionKeyValue) {
+          // Fallback to legacy single partition key
+          request.partitionKeyValue = partitionKeyValue
+        }
+
+        if (validSortKeyConditions.length > 0) {
+          request.sortKeyConditions = validSortKeyConditions
+        } else if (sortKeyValue && currentKeySchema?.sortKey) {
+          // Fallback to legacy single sort key
           request.sortKeyCondition = {
             operator: sortKeyOperator as 'EQ' | 'LE' | 'LT' | 'GE' | 'GT' | 'BETWEEN' | 'BEGINS_WITH',
             value: sortKeyValue,
@@ -461,63 +646,69 @@ export function ExplorerView() {
             {/* Query Mode: Key Conditions */}
             {mode === 'query' && currentKeySchema && (
               <div className="space-y-4 pt-4 border-t">
-                {/* Partition Key */}
+                {/* Multi-Attribute Partition Key */}
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Partition key</label>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <div className="text-xs text-muted-foreground mb-1">Attribute</div>
-                      <Input value={currentKeySchema.partitionKey?.name || ''} disabled className="bg-muted" />
+                  <label className="text-sm font-medium mb-1 block">
+                    Partition key
+                    {currentKeySchema.partitionKeys && currentKeySchema.partitionKeys.length > 1 && (
+                      <span className="text-muted-foreground text-xs ml-2 font-normal">
+                        (multi-attribute - see{' '}
+                        <a
+                          href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.DesignPattern.MultiAttributeKeys.html"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 underline"
+                        >
+                          AWS docs
+                        </a>
+                        )
+                      </span>
+                    )}
+                  </label>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex-1">Attribute</div>
+                      <div className="flex-1">Value</div>
                     </div>
-                    <div className="flex-1">
-                      <div className="text-xs text-muted-foreground mb-1">Value</div>
-                      <Input
-                        placeholder="Enter attribute value"
-                        value={partitionKeyValue}
-                        onChange={(e) => setPartitionKeyValue(e.target.value)}
+                    {partitionKeyValues.map((keyValue, index) => (
+                      <PartitionKeyRow
+                        key={index}
+                        keyValue={keyValue}
+                        index={index}
+                        onChange={updatePartitionKeyValue}
+                        onRemove={() => {}}
+                        canRemove={false}
                       />
-                    </div>
+                    ))}
                   </div>
                 </div>
 
-                {/* Sort Key */}
-                {currentKeySchema.sortKey && (
+                {/* Multi-Attribute Sort Key */}
+                {sortKeyConditions.length > 0 && sortKeyConditions[0].attributeName && (
                   <div>
                     <label className="text-sm font-medium mb-1 block">
                       Sort key - <span className="text-muted-foreground italic">optional</span>
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <div className="w-40">
-                        <div className="text-xs text-muted-foreground mb-1">Attribute</div>
-                        <Input value={currentKeySchema.sortKey.name} disabled className="bg-muted" />
-                      </div>
-                      <div className="w-44">
-                        <div className="text-xs text-muted-foreground mb-1">Condition</div>
-                        <Select
-                          value={sortKeyOperator}
-                          onChange={(e) => setSortKeyOperator(e.target.value)}
-                          options={SORT_KEY_OPERATORS}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-xs text-muted-foreground mb-1">Value</div>
-                        <Input
-                          placeholder="Enter attribute value"
-                          value={sortKeyValue}
-                          onChange={(e) => setSortKeyValue(e.target.value)}
-                        />
-                      </div>
-                      {sortKeyOperator === 'BETWEEN' && (
-                        <div className="flex-1">
-                          <div className="text-xs text-muted-foreground mb-1">Value 2</div>
-                          <Input
-                            placeholder="Enter second value"
-                            value={sortKeyValue2}
-                            onChange={(e) => setSortKeyValue2(e.target.value)}
-                          />
-                        </div>
+                      {currentKeySchema.sortKeys && currentKeySchema.sortKeys.length > 1 && (
+                        <span className="text-muted-foreground text-xs ml-2 font-normal">(multi-attribute)</span>
                       )}
-                      <div className="flex items-center gap-2 pt-5">
+                    </label>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="w-40">Attribute</div>
+                        <div className="w-44">Condition</div>
+                        <div className="flex-1">Value</div>
+                      </div>
+                      {sortKeyConditions.map((sortCondition, index) => (
+                        <SortKeyRow
+                          key={index}
+                          sortCondition={sortCondition}
+                          index={index}
+                          onChange={updateSortKeyCondition}
+                          onRemove={() => {}}
+                          canRemove={false}
+                        />
+                      ))}
+                      <div className="flex items-center gap-2 pt-2">
                         <Checkbox checked={sortDescending} onCheckedChange={(checked) => setSortDescending(checked)} />
                         <label className="text-sm">Sort descending</label>
                       </div>
@@ -550,7 +741,15 @@ export function ExplorerView() {
 
         {/* Actions */}
         <div className="flex items-center gap-2 pt-2">
-          <Button onClick={() => executeQuery()} disabled={isLoading || (mode === 'query' && !partitionKeyValue)}>
+          <Button
+            onClick={() => executeQuery()}
+            disabled={
+              isLoading ||
+              (mode === 'query' &&
+                !partitionKeyValue &&
+                partitionKeyValues.filter((kv) => kv.attributeName && kv.value).length === 0)
+            }
+          >
             {isLoading ? (
               <>
                 <Spinner className="h-4 w-4 mr-1" />
@@ -649,7 +848,9 @@ export function ExplorerView() {
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             <div className="text-muted-foreground">
               <p className="mb-2">Configure your {mode === 'scan' ? 'scan' : 'query'} and click Run to see results.</p>
-              {mode === 'query' && <p className="text-sm">Query requires a partition key value.</p>}
+              {mode === 'query' && (
+                <p className="text-sm">Query requires at least one partition key attribute with a value.</p>
+              )}
             </div>
           </div>
         )}
