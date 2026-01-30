@@ -3,14 +3,22 @@
 
 body {
   font-family:
-    system-ui,
     -apple-system,
-    Arial,
-    Helvetica,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'Roboto',
+    'Oxygen',
+    'Ubuntu',
+    'Cantarell',
+    'Fira Sans',
+    'Droid Sans',
+    'Helvetica Neue',
     sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html,
@@ -18,7 +26,7 @@ body,
 #app {
   height: 100%;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 /* Apply dark mode by default */
@@ -33,4 +41,30 @@ html {
 body {
   background-color: var(--background);
   color: var(--foreground);
+}
+
+/* Custom scrollbar styling for the entire app */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 5px;
+  border: 2px solid var(--background);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* Improve focus visibility */
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }

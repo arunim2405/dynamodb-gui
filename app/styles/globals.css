@@ -27,38 +27,44 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-table-row-alt: var(--table-row-alt);
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 }
 
 @layer base {
-  /* Dark theme by default for DynamoDB Desktop */
+  /* Dark theme by default for DynamoDB Desktop - refined for reduced eye strain */
   :root {
-    --background: #0a0a0a;
-    --foreground: #fafafa;
-    --card: #0a0a0a;
-    --card-foreground: #fafafa;
-    --popover: #0a0a0a;
-    --popover-foreground: #fafafa;
-    --primary: #fafafa;
-    --primary-foreground: #171717;
-    --secondary: #262626;
-    --secondary-foreground: #fafafa;
-    --muted: #262626;
-    --muted-foreground: #a3a3a3;
-    --accent: #262626;
-    --accent-foreground: #fafafa;
-    --destructive: #7f1d1d;
-    --destructive-foreground: #fafafa;
-    --border: #262626;
-    --input: #262626;
-    --ring: #d4d4d4;
-    --chart-1: hsl(220 70% 50%);
-    --chart-2: hsl(160 60% 45%);
-    --chart-3: hsl(30 80% 55%);
+    --background: #0d1117;
+    --foreground: #e6edf3;
+    --card: #161b22;
+    --card-foreground: #e6edf3;
+    --popover: #161b22;
+    --popover-foreground: #e6edf3;
+    --primary: #58a6ff;
+    --primary-foreground: #0d1117;
+    --secondary: #21262d;
+    --secondary-foreground: #e6edf3;
+    --muted: #21262d;
+    --muted-foreground: #8b949e;
+    --accent: #30363d;
+    --accent-foreground: #e6edf3;
+    --destructive: #f85149;
+    --destructive-foreground: #ffffff;
+    --success: #3fb950;
+    --success-foreground: #0d1117;
+    --border: #30363d;
+    --input: #21262d;
+    --ring: #58a6ff;
+    --table-row-alt: #161b22;
+    --chart-1: hsl(212 92% 45%);
+    --chart-2: hsl(152 68% 40%);
+    --chart-3: hsl(38 92% 50%);
     --chart-4: hsl(280 65% 60%);
     --chart-5: hsl(340 75% 55%);
-    --radius: 0.5rem;
+    --radius: 0.375rem;
   }
 }

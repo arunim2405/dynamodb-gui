@@ -20,18 +20,18 @@ function Alert({ className, variant = 'default', children, ...props }: AlertProp
     <div
       role="alert"
       className={cn(
-        'relative w-full rounded-lg border p-4',
-        variant === 'default' && 'bg-background text-foreground',
-        variant === 'destructive' && 'border-destructive/50 text-destructive bg-destructive/10',
-        variant === 'success' && 'border-green-500/50 text-green-600 bg-green-500/10',
-        variant === 'info' && 'border-blue-500/50 text-blue-600 bg-blue-500/10',
+        'relative w-full rounded-md border p-3',
+        variant === 'default' && 'bg-muted/30 border-border/50 text-foreground',
+        variant === 'destructive' && 'border-destructive/30 text-destructive bg-destructive/10',
+        variant === 'success' && 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10',
+        variant === 'info' && 'border-sky-500/30 text-sky-400 bg-sky-500/10',
         className
       )}
       {...props}
     >
-      <div className="flex gap-3">
-        <Icon className="h-4 w-4 mt-0.5" />
-        <div className="flex-1">{children}</div>
+      <div className="flex gap-2.5 items-start">
+        <Icon className="h-4 w-4 mt-0.5 shrink-0" />
+        <div className="flex-1 text-sm">{children}</div>
       </div>
     </div>
   )
@@ -42,7 +42,7 @@ function AlertTitle({ className, ...props }: React.ComponentProps<'h5'>) {
 }
 
 function AlertDescription({ className, ...props }: React.ComponentProps<'p'>) {
-  return <p className={cn('text-sm [&_p]:leading-relaxed', className)} {...props} />
+  return <p className={cn('text-sm leading-relaxed', className)} {...props} />
 }
 
 export { Alert, AlertTitle, AlertDescription }

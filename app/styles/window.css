@@ -2,28 +2,28 @@
   color-scheme: dark;
   --window-icon-height: 16px;
   --window-title-margin: 42px;
-  --window-titlebar-height: 40px;
-  --window-titlebar-font-size: 13px;
-  --window-scrollbar-width: 12px;
+  --window-titlebar-height: 38px;
+  --window-titlebar-font-size: 12px;
+  --window-scrollbar-width: 10px;
   --window-mac-titlebar-controls-margin: 80px;
-  --window-background-transition-duration: 0.3s;
+  --window-background-transition-duration: 0.2s;
   --window-c-popup-font-weight: normal;
 
-  --window-c-background: #1c1c1c;
-  --window-c-titlebar-background: #282828;
-  --window-c-titlebar-border: transparent;
-  --window-c-text: #ffffffc8;
-  --window-c-hover: #3c3c3c;
-  --window-c-popup-background: #282828;
-  --window-c-popup-border: #3c3c3c;
-  --window-c-popup-shadow: #00000080;
-  --window-c-separator: #80808033;
-  --window-c-control-hover: #0000003d;
-  --window-c-control-close-hover: #c42b1c;
-  --window-c-scrollbar-track: #1e1e1ec6;
-  --window-c-scrollbar-thumb: #88888863;
-  --window-c-scrollbar-thumb-hover: #555;
-  --window-c-text-shadow: #000000a8;
+  --window-c-background: #0d1117;
+  --window-c-titlebar-background: #161b22;
+  --window-c-titlebar-border: #30363d;
+  --window-c-text: #e6edf3;
+  --window-c-hover: #21262d;
+  --window-c-popup-background: #161b22;
+  --window-c-popup-border: #30363d;
+  --window-c-popup-shadow: #00000060;
+  --window-c-separator: #30363d;
+  --window-c-control-hover: #21262d;
+  --window-c-control-close-hover: #f85149;
+  --window-c-scrollbar-track: #0d1117;
+  --window-c-scrollbar-thumb: #30363d;
+  --window-c-scrollbar-thumb-hover: #484f58;
+  --window-c-text-shadow: transparent;
 }
 
 :root:not(.dark) {
