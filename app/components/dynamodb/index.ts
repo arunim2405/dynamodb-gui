@@ -1,7 +1,7 @@
 export { DynamoDBApp } from './DynamoDBApp'
 export { DynamoDBProvider, useDynamoDB, AWS_REGIONS } from './DynamoDBContext'
 export type { ViewType } from './TabsContext'
-export { TabsProvider, useTabs } from './TabsContext'
+export { TabsProvider, useTabs, DEFAULT_PROFILE, DEFAULT_REGION } from './TabsContext'
 export type { SessionTab, TabSessionState } from './TabsContext'
 export { TabBar } from './TabBar'
 export { ConnectionHeader } from './ConnectionHeader'
