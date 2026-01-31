@@ -26,11 +26,9 @@ const darkTheme = EditorView.theme(
     '.cm-cursor, .cm-dropCursor': {
       borderLeftColor: '#f39c12',
     },
-    // Improved selection highlight - more visible blue/purple tint
+    // Improved selection highlight - more visible blue tint
+    // Note: !important is needed to override CodeMirror's default theme specificity
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
-      backgroundColor: '#264f78 !important',
-    },
-    '.cm-selectionBackground': {
       backgroundColor: '#264f78 !important',
     },
     '.cm-activeLine': {

@@ -62,6 +62,9 @@ const PROJECTION_TYPES = [
   { value: 'INCLUDE', label: 'Include specific attributes' },
 ]
 
+// Maximum length for tab titles
+const MAX_TAB_TITLE_LENGTH = 30
+
 interface FilterRowProps {
   filter: ScanQueryFilter
   index: number
@@ -578,7 +581,7 @@ export function ExplorerView() {
     // Get item identifier for title (first key or first attribute)
     const partitionKey = currentTable?.table.partitionKey?.name
     const itemTitle = partitionKey && item[partitionKey] 
-      ? `${currentTableName}: ${String(item[partitionKey]).substring(0, 30)}`
+      ? `${currentTableName}: ${String(item[partitionKey]).substring(0, MAX_TAB_TITLE_LENGTH)}`
       : `${currentTableName}: Item`
     addTab({
       title: itemTitle,
