@@ -329,7 +329,7 @@ function JsonTreeView({ data, level = 0 }: JsonTreeViewProps) {
 }
 
 export function ExplorerView() {
-  const { currentTable, currentTableName, selectedProfile, selectedRegion, connectionInfo } = useDynamoDB()
+  const { currentTable, currentTableName, selectedProfile, selectedRegion, connectionInfo, queryResults, lastEvaluatedKey, setQueryResults, clearQueryResults } = useDynamoDB()
   const { addTab } = useTabs()
 
   // Query state
@@ -358,11 +358,9 @@ export function ExplorerView() {
     }[]
   >([{ attributeName: '', operator: 'EQ', value: '', type: 'S' }])
 
-  // Results state
-  const [results, setResults] = React.useState<ScanQueryResult | null>(null)
+  // Loading and error state (local, not persisted)
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-  const [lastEvaluatedKey, setLastEvaluatedKey] = React.useState<Record<string, unknown> | undefined>()
 
   // Document editor state
   const [editorOpen, setEditorOpen] = React.useState(false)
@@ -496,9 +494,8 @@ export function ExplorerView() {
     // Reset will re-trigger the useEffect to populate from schema
     setPartitionKeyValues([{ attributeName: '', value: '', type: 'S' }])
     setSortKeyConditions([{ attributeName: '', operator: 'EQ', value: '', type: 'S' }])
-    setResults(null)
+    clearQueryResults()
     setError(null)
-    setLastEvaluatedKey(undefined)
   }
 
   const executeQuery = async (loadMore = false) => {
@@ -555,17 +552,17 @@ export function ExplorerView() {
 
       const result = await window.conveyor.dynamodb.scanQuery(request)
 
-      if (loadMore && results) {
-        setResults({
+      if (loadMore && queryResults) {
+        const combinedResults = {
           ...result,
-          items: [...results.items, ...result.items],
-          count: results.count + result.count,
-          scannedCount: results.scannedCount + result.scannedCount,
-        })
+          items: [...queryResults.items, ...result.items],
+          count: queryResults.count + result.count,
+          scannedCount: queryResults.scannedCount + result.scannedCount,
+        }
+        setQueryResults(combinedResults, result.lastEvaluatedKey)
       } else {
-        setResults(result)
+        setQueryResults(result, result.lastEvaluatedKey)
       }
-      setLastEvaluatedKey(result.lastEvaluatedKey)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Query failed')
     } finally {
@@ -574,8 +571,8 @@ export function ExplorerView() {
   }
 
   const copyResultsToClipboard = () => {
-    if (results) {
-      navigator.clipboard.writeText(JSON.stringify(results.items, null, 2))
+    if (queryResults) {
+      navigator.clipboard.writeText(JSON.stringify(queryResults.items, null, 2))
     }
   }
 
@@ -657,13 +654,13 @@ export function ExplorerView() {
         }
       }
       await window.conveyor.dynamodb.deleteItem(currentTableName, key)
-      // Remove from local results
-      if (results) {
-        setResults({
-          ...results,
-          items: results.items.filter((_, i) => i !== index),
-          count: results.count - 1,
-        })
+      // Remove from tab's query results
+      if (queryResults) {
+        setQueryResults({
+          ...queryResults,
+          items: queryResults.items.filter((_, i) => i !== index),
+          count: queryResults.count - 1,
+        }, lastEvaluatedKey)
       }
       setDeleteConfirm(null)
     } catch (err) {
@@ -862,13 +859,13 @@ export function ExplorerView() {
 
       {/* Results */}
       <div className="flex-1 overflow-auto">
-        {results && (
+        {queryResults && (
           <div className="px-5 py-4">
             {/* Results Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <h3 className="text-sm font-medium">Items returned: <span className="text-primary tabular-nums">{results.count}</span></h3>
-                <Badge variant="outline" className="text-xs">Scanned: {results.scannedCount}</Badge>
+                <h3 className="text-sm font-medium">Items returned: <span className="text-primary tabular-nums">{queryResults.count}</span></h3>
+                <Badge variant="outline" className="text-xs">Scanned: {queryResults.scannedCount}</Badge>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleCreateItem} className="h-7 text-xs">
@@ -884,7 +881,7 @@ export function ExplorerView() {
 
             {/* Results List */}
             <div className="space-y-2">
-              {results.items.map((item, index) => (
+              {queryResults.items.map((item, index) => (
                 <div
                   key={index}
                   className="border border-border/40 rounded-md p-3 bg-card/50 hover:bg-muted/30 hover:border-border/60 transition-all group relative"
@@ -935,7 +932,7 @@ export function ExplorerView() {
           </div>
         )}
 
-        {!results && !isLoading && !error && (
+        {!queryResults && !isLoading && !error && (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[200px]">
             <div className="text-muted-foreground">
               <p className="text-sm mb-1">Configure your {mode === 'scan' ? 'scan' : 'query'} and click Run to see results.</p>

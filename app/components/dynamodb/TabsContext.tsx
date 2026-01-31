@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { TableInfo, TableDetails, ConnectionInfo } from '@/lib/services/dynamodb-service'
+import type { TableInfo, TableDetails, ConnectionInfo, ScanQueryResult } from '@/lib/services/dynamodb-service'
 
 export type ViewType = 'tables' | 'explorer'
 
@@ -23,6 +23,10 @@ export interface TabSessionState {
   
   // View state
   currentView: ViewType
+  
+  // Query results (stored per-tab to avoid sharing between tabs)
+  queryResults: ScanQueryResult | null
+  lastEvaluatedKey: Record<string, unknown> | undefined
 }
 
 export interface SessionTab {
@@ -47,6 +51,8 @@ const createDefaultSessionState = (): TabSessionState => ({
   currentTable: null,
   currentTableName: null,
   currentView: 'tables',
+  queryResults: null,
+  lastEvaluatedKey: undefined,
 })
 
 interface TabsContextValue {
