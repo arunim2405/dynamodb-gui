@@ -8,7 +8,7 @@ export function TabBar() {
   const { tabs, activeTabId, addTab, removeTab, setActiveTab } = useTabs()
 
   const handleNewTab = () => {
-    addTab({ title: 'Tables', type: 'tables' })
+    addTab({ title: 'New Session', type: 'tables' })
   }
 
   const getTabIcon = (tab: SessionTab) => {
@@ -20,6 +20,19 @@ export function TabBar() {
       case 'item':
         return <FileText className="h-3 w-3" />
     }
+  }
+
+  const getTabTitle = (tab: SessionTab) => {
+    // Show profile info in tab title for better identification
+    const profile = tab.sessionState?.connectionInfo?.profile
+    const region = tab.sessionState?.connectionInfo?.region
+    if (profile && region) {
+      if (tab.type === 'explorer' && tab.tableName) {
+        return `${tab.tableName} (${profile})`
+      }
+      return `${profile} - ${region}`
+    }
+    return tab.title
   }
 
   return (
@@ -37,7 +50,7 @@ export function TabBar() {
             onClick={() => setActiveTab(tab.id)}
           >
             {getTabIcon(tab)}
-            <span className="truncate">{tab.title}</span>
+            <span className="truncate">{getTabTitle(tab)}</span>
             {tabs.length > 1 && (
               <button
                 onClick={(e) => {

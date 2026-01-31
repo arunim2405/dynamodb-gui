@@ -1,4 +1,25 @@
 import * as React from 'react'
+import type { TableInfo, TableDetails, ConnectionInfo } from '@/lib/services/dynamodb-service'
+
+export type ViewType = 'tables' | 'explorer'
+
+// Session state that is stored per-tab
+export interface TabSessionState {
+  // Connection state
+  selectedProfile: string
+  selectedRegion: string
+  connectionInfo: ConnectionInfo | null
+  
+  // Tables state
+  tables: TableInfo[]
+  
+  // Current table exploration
+  currentTable: TableDetails | null
+  currentTableName: string | null
+  
+  // View state
+  currentView: ViewType
+}
 
 export interface SessionTab {
   id: string
@@ -9,15 +30,30 @@ export interface SessionTab {
   // For item tabs
   item?: Record<string, unknown>
   isNew?: boolean
+  // Session state for this tab
+  sessionState: TabSessionState
 }
+
+// Default session state for new tabs
+const createDefaultSessionState = (): TabSessionState => ({
+  selectedProfile: 'default',
+  selectedRegion: 'us-east-1',
+  connectionInfo: null,
+  tables: [],
+  currentTable: null,
+  currentTableName: null,
+  currentView: 'tables',
+})
 
 interface TabsContextValue {
   tabs: SessionTab[]
   activeTabId: string
-  addTab: (tab: Omit<SessionTab, 'id'>) => string
+  activeTab: SessionTab | undefined
+  addTab: (tab: Omit<SessionTab, 'id' | 'sessionState'> & { sessionState?: Partial<TabSessionState> }) => string
   removeTab: (id: string) => void
   setActiveTab: (id: string) => void
   updateTab: (id: string, updates: Partial<SessionTab>) => void
+  updateActiveTabSession: (updates: Partial<TabSessionState>) => void
 }
 
 const TabsContext = React.createContext<TabsContextValue | undefined>(undefined)
@@ -38,13 +74,19 @@ let tabIdCounter = 0
 
 export function TabsProvider({ children }: TabsProviderProps) {
   const [tabs, setTabs] = React.useState<SessionTab[]>([
-    { id: 'main', title: 'Tables', type: 'tables' }
+    { id: 'main', title: 'Tables', type: 'tables', sessionState: createDefaultSessionState() }
   ])
   const [activeTabId, setActiveTabId] = React.useState('main')
 
-  const addTab = React.useCallback((tab: Omit<SessionTab, 'id'>) => {
+  const activeTab = React.useMemo(() => tabs.find((t) => t.id === activeTabId), [tabs, activeTabId])
+
+  const addTab = React.useCallback((tab: Omit<SessionTab, 'id' | 'sessionState'> & { sessionState?: Partial<TabSessionState> }) => {
     const id = `tab-${++tabIdCounter}`
-    const newTab: SessionTab = { ...tab, id }
+    const newTab: SessionTab = {
+      ...tab,
+      id,
+      sessionState: { ...createDefaultSessionState(), ...tab.sessionState },
+    }
     setTabs((prev) => [...prev, newTab])
     setActiveTabId(id)
     return id
@@ -61,7 +103,7 @@ export function TabsProvider({ children }: TabsProviderProps) {
       }
       // Don't allow closing the last tab
       if (newTabs.length === 0) {
-        return [{ id: 'main', title: 'Tables', type: 'tables' as const }]
+        return [{ id: 'main', title: 'Tables', type: 'tables' as const, sessionState: createDefaultSessionState() }]
       }
       return newTabs
     })
@@ -77,13 +119,25 @@ export function TabsProvider({ children }: TabsProviderProps) {
     )
   }, [])
 
+  const updateActiveTabSession = React.useCallback((updates: Partial<TabSessionState>) => {
+    setTabs((prev) =>
+      prev.map((t) => 
+        t.id === activeTabId 
+          ? { ...t, sessionState: { ...t.sessionState, ...updates } } 
+          : t
+      )
+    )
+  }, [activeTabId])
+
   const value: TabsContextValue = {
     tabs,
     activeTabId,
+    activeTab,
     addTab,
     removeTab,
     setActiveTab,
     updateTab,
+    updateActiveTabSession,
   }
 
   return <TabsContext.Provider value={value}>{children}</TabsContext.Provider>
