@@ -26,8 +26,12 @@ const darkTheme = EditorView.theme(
     '.cm-cursor, .cm-dropCursor': {
       borderLeftColor: '#f39c12',
     },
+    // Improved selection highlight - more visible blue/purple tint
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
-      backgroundColor: '#3d4455',
+      backgroundColor: '#264f78 !important',
+    },
+    '.cm-selectionBackground': {
+      backgroundColor: '#264f78 !important',
     },
     '.cm-activeLine': {
       backgroundColor: '#2a2e38',
@@ -60,11 +64,18 @@ const darkTheme = EditorView.theme(
       backgroundColor: '#23262e',
       color: '#d5ced9',
     },
+    // Search match highlight - much more prominent yellow/orange
     '.cm-searchMatch': {
-      backgroundColor: '#5c637066',
+      backgroundColor: '#9e6a03',
+      outline: '1px solid #f39c12',
     },
     '.cm-searchMatch.cm-searchMatch-selected': {
-      backgroundColor: '#f39c1244',
+      backgroundColor: '#f39c12',
+      color: '#000',
+    },
+    // Selection match highlighting
+    '.cm-selectionMatch': {
+      backgroundColor: '#515c6a',
     },
   },
   { dark: true }
@@ -104,6 +115,7 @@ interface DocumentEditorProps {
   item: Record<string, unknown> | null
   onSave: (item: Record<string, unknown>) => Promise<void>
   isNew?: boolean
+  inline?: boolean
 }
 
 // Helper to convert a value to DynamoDB format
@@ -142,7 +154,7 @@ function convertToDynamoDBFormat(obj: Record<string, unknown>): Record<string, u
   return result
 }
 
-export function DocumentEditor({ isOpen, onClose, tableName, item, onSave, isNew = false }: DocumentEditorProps) {
+export function DocumentEditor({ isOpen, onClose, tableName, item, onSave, isNew = false, inline = false }: DocumentEditorProps) {
   const [content, setContent] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -261,6 +273,133 @@ export function DocumentEditor({ isOpen, onClose, tableName, item, onSave, isNew
 
   if (!isOpen) return null
 
+  // Shared content for both modal and inline modes
+  const editorContent = (
+    <>
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
+        <div className="flex items-center gap-4">
+          <h2 className="text-lg font-semibold">{isNew ? 'Create Item' : 'Edit Item'}</h2>
+          <span className="text-sm text-muted-foreground">
+            Table: <span className="font-medium text-foreground">{tableName}</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch checked={viewDynamoDBJson} onCheckedChange={setViewDynamoDBJson} />
+            <span className="text-sm text-muted-foreground">View DynamoDB JSON</span>
+          </div>
+          <Button variant="ghost" size="icon" onClick={handleCopy} title="Copy to clipboard">
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Validation Errors Banner */}
+      {hasValidationErrors && (
+        <div className="px-6 py-2 bg-destructive/10 border-b border-destructive/20 flex items-center gap-2 text-destructive text-sm shrink-0">
+          <AlertCircle className="h-4 w-4" />
+          <span>JSON syntax error detected</span>
+        </div>
+      )}
+
+      {/* Editor */}
+      <div className="flex-1 overflow-auto">
+        <CodeMirror
+          value={content}
+          onChange={handleContentChange}
+          extensions={extensions}
+          height={inline ? '100%' : 'auto'}
+          theme={customTheme}
+          basicSetup={{
+            lineNumbers: true,
+            highlightActiveLineGutter: true,
+            highlightActiveLine: true,
+            foldGutter: true,
+            dropCursor: true,
+            allowMultipleSelections: true,
+            indentOnInput: true,
+            bracketMatching: true,
+            closeBrackets: true,
+            autocompletion: true,
+            rectangularSelection: true,
+            crosshairCursor: false,
+            highlightSelectionMatches: true,
+            tabSize: 2,
+          }}
+        />
+      </div>
+
+      {/* Status Bar */}
+      <div className="px-6 py-2 border-t bg-muted/30 flex items-center gap-4 text-xs text-muted-foreground shrink-0">
+        <span>JSON</span>
+        <span>•</span>
+        <span>
+          Ln {cursorPosition.line}, Col {cursorPosition.col}
+        </span>
+        {!hasValidationErrors && content.length > 0 && (
+          <>
+            <span>•</span>
+            <span className="text-green-500 flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              Valid JSON
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* Error/Success Messages */}
+      {error && (
+        <div className="px-6 py-3 border-t shrink-0">
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      {success && (
+        <div className="px-6 py-3 border-t shrink-0">
+          <Alert variant="success">
+            <AlertDescription>Document saved successfully!</AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-3 px-6 py-4 border-t shrink-0">
+        <Button variant="outline" onClick={onClose} disabled={isLoading}>
+          {inline ? 'Close' : 'Cancel'}
+        </Button>
+        <Button variant="outline" onClick={formatDocument} disabled={isLoading}>
+          Format
+        </Button>
+        <Button onClick={handleSave} disabled={isLoading || hasValidationErrors}>
+          {isLoading ? (
+            <>
+              <Spinner className="h-4 w-4 mr-2" />
+              Saving...
+            </>
+          ) : (
+            'Save'
+          )}
+        </Button>
+      </div>
+    </>
+  )
+
+  // Inline mode: render directly without modal wrapper
+  if (inline) {
+    return (
+      <div className="flex-1 flex flex-col bg-background rounded-lg border overflow-hidden">
+        {editorContent}
+      </div>
+    )
+  }
+
+  // Modal mode: render with backdrop and centering
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -268,117 +407,7 @@ export function DocumentEditor({ isOpen, onClose, tableName, item, onSave, isNew
 
       {/* Modal */}
       <div className="relative z-50 w-full max-w-4xl max-h-[90vh] flex flex-col bg-background rounded-lg border shadow-xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
-          <div className="flex items-center gap-4">
-            <h2 className="text-lg font-semibold">{isNew ? 'Create Item' : 'Edit Item'}</h2>
-            <span className="text-sm text-muted-foreground">
-              Table: <span className="font-medium text-foreground">{tableName}</span>
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Switch checked={viewDynamoDBJson} onCheckedChange={setViewDynamoDBJson} />
-              <span className="text-sm text-muted-foreground">View DynamoDB JSON</span>
-            </div>
-            <Button variant="ghost" size="icon" onClick={handleCopy} title="Copy to clipboard">
-              <Copy className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Validation Errors Banner */}
-        {hasValidationErrors && (
-          <div className="px-6 py-2 bg-destructive/10 border-b border-destructive/20 flex items-center gap-2 text-destructive text-sm shrink-0">
-            <AlertCircle className="h-4 w-4" />
-            <span>JSON syntax error detected</span>
-          </div>
-        )}
-
-        {/* Editor */}
-        <div className="flex-1 max-h-200 overflow-auto">
-          <CodeMirror
-            value={content}
-            onChange={handleContentChange}
-            extensions={extensions}
-            height="auto"
-            theme={customTheme}
-            basicSetup={{
-              lineNumbers: true,
-              highlightActiveLineGutter: true,
-              highlightActiveLine: true,
-              foldGutter: true,
-              dropCursor: true,
-              allowMultipleSelections: true,
-              indentOnInput: true,
-              bracketMatching: true,
-              closeBrackets: true,
-              autocompletion: true,
-              rectangularSelection: true,
-              crosshairCursor: false,
-              highlightSelectionMatches: true,
-              tabSize: 2,
-            }}
-          />
-        </div>
-
-        {/* Status Bar */}
-        <div className="px-6 py-2 border-t bg-muted/30 flex items-center gap-4 text-xs text-muted-foreground shrink-0">
-          <span>JSON</span>
-          <span>•</span>
-          <span>
-            Ln {cursorPosition.line}, Col {cursorPosition.col}
-          </span>
-          {!hasValidationErrors && content.length > 0 && (
-            <>
-              <span>•</span>
-              <span className="text-green-500 flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3" />
-                Valid JSON
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* Error/Success Messages */}
-        {error && (
-          <div className="px-6 py-3 border-t shrink-0">
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          </div>
-        )}
-
-        {success && (
-          <div className="px-6 py-3 border-t shrink-0">
-            <Alert variant="success">
-              <AlertDescription>Document saved successfully!</AlertDescription>
-            </Alert>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t shrink-0">
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>
-            Cancel
-          </Button>
-          <Button variant="outline" onClick={formatDocument} disabled={isLoading}>
-            Format
-          </Button>
-          <Button onClick={handleSave} disabled={isLoading || hasValidationErrors}>
-            {isLoading ? (
-              <>
-                <Spinner className="h-4 w-4 mr-2" />
-                Saving...
-              </>
-            ) : (
-              'Save'
-            )}
-          </Button>
-        </div>
+        {editorContent}
       </div>
     </div>
   )

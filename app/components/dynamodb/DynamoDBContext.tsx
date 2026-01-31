@@ -1,5 +1,6 @@
 import * as React from 'react'
 import type { TableInfo, TableDetails, ConnectionInfo, AWSProfile } from '@/lib/services/dynamodb-service'
+import { useTabs } from './TabsContext'
 
 // AWS Regions list
 export const AWS_REGIONS = [
@@ -70,6 +71,9 @@ interface DynamoDBProviderProps {
 }
 
 export function DynamoDBProvider({ children }: DynamoDBProviderProps) {
+  // Get tabs context for updating tab titles
+  const { activeTabId, updateTab } = useTabs()
+  
   // Connection state
   const [profiles, setProfiles] = React.useState<AWSProfile[]>([])
   const [selectedProfile, setSelectedProfile] = React.useState('default')
@@ -144,6 +148,8 @@ export function DynamoDBProvider({ children }: DynamoDBProviderProps) {
       setCurrentTable(details)
       setCurrentTableName(tableName)
       setCurrentView('explorer')
+      // Update the active tab title and type
+      updateTab(activeTabId, { title: tableName, type: 'explorer', tableName })
     } catch (error) {
       console.error('Failed to load table details:', error)
     }
@@ -153,6 +159,8 @@ export function DynamoDBProvider({ children }: DynamoDBProviderProps) {
     setCurrentView('tables')
     setCurrentTable(null)
     setCurrentTableName(null)
+    // Update the active tab to show tables
+    updateTab(activeTabId, { title: 'Tables', type: 'tables', tableName: undefined })
   }
 
   const value: DynamoDBContextValue = {
