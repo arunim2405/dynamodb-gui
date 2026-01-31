@@ -76,12 +76,18 @@ interface TabsProviderProps {
 
 let tabIdCounter = 0
 
-export function TabsProvider({ children }: TabsProviderProps) {
-  const [tabs, setTabs] = React.useState<SessionTab[]>([
-    { id: 'main', title: 'Tables', type: 'tables', sessionState: createDefaultSessionState() }
-  ])
-  const [activeTabId, setActiveTabId] = React.useState('main')
+interface TabsState {
+  tabs: SessionTab[]
+  activeTabId: string
+}
 
+export function TabsProvider({ children }: TabsProviderProps) {
+  const [state, setState] = React.useState<TabsState>({
+    tabs: [{ id: 'main', title: 'Tables', type: 'tables', sessionState: createDefaultSessionState() }],
+    activeTabId: 'main',
+  })
+
+  const { tabs, activeTabId } = state
   const activeTab = React.useMemo(() => tabs.find((t) => t.id === activeTabId), [tabs, activeTabId])
 
   const addTab = React.useCallback((tab: Omit<SessionTab, 'id' | 'sessionState'> & { sessionState?: Partial<TabSessionState> }) => {
@@ -91,47 +97,59 @@ export function TabsProvider({ children }: TabsProviderProps) {
       id,
       sessionState: { ...createDefaultSessionState(), ...tab.sessionState },
     }
-    setTabs((prev) => [...prev, newTab])
-    setActiveTabId(id)
+    // Update both tabs and activeTabId atomically in a single state update
+    setState((prev) => ({
+      tabs: [...prev.tabs, newTab],
+      activeTabId: id,
+    }))
     return id
   }, [])
 
   const removeTab = React.useCallback((id: string) => {
-    setTabs((prev) => {
-      const newTabs = prev.filter((t) => t.id !== id)
+    setState((prev) => {
+      const newTabs = prev.tabs.filter((t) => t.id !== id)
+      let newActiveTabId = prev.activeTabId
+      
       // If we're closing the active tab, switch to the previous tab or the first one
-      if (id === activeTabId && newTabs.length > 0) {
-        const closedIndex = prev.findIndex((t) => t.id === id)
+      if (id === prev.activeTabId && newTabs.length > 0) {
+        const closedIndex = prev.tabs.findIndex((t) => t.id === id)
         const newActiveIndex = Math.max(0, closedIndex - 1)
-        setActiveTabId(newTabs[newActiveIndex]?.id || newTabs[0].id)
+        newActiveTabId = newTabs[newActiveIndex]?.id || newTabs[0].id
       }
+      
       // Don't allow closing the last tab
       if (newTabs.length === 0) {
-        return [{ id: 'main', title: 'Tables', type: 'tables' as const, sessionState: createDefaultSessionState() }]
+        return {
+          tabs: [{ id: 'main', title: 'Tables', type: 'tables' as const, sessionState: createDefaultSessionState() }],
+          activeTabId: 'main',
+        }
       }
-      return newTabs
+      
+      return { tabs: newTabs, activeTabId: newActiveTabId }
     })
-  }, [activeTabId])
+  }, [])
 
   const setActiveTab = React.useCallback((id: string) => {
-    setActiveTabId(id)
+    setState((prev) => ({ ...prev, activeTabId: id }))
   }, [])
 
   const updateTab = React.useCallback((id: string, updates: Partial<SessionTab>) => {
-    setTabs((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
-    )
+    setState((prev) => ({
+      ...prev,
+      tabs: prev.tabs.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+    }))
   }, [])
 
   const updateActiveTabSession = React.useCallback((updates: Partial<TabSessionState>) => {
-    setTabs((prev) =>
-      prev.map((t) => 
-        t.id === activeTabId 
+    setState((prev) => ({
+      ...prev,
+      tabs: prev.tabs.map((t) => 
+        t.id === prev.activeTabId 
           ? { ...t, sessionState: { ...t.sessionState, ...updates } } 
           : t
-      )
-    )
-  }, [activeTabId])
+      ),
+    }))
+  }, [])
 
   const value: TabsContextValue = {
     tabs,
