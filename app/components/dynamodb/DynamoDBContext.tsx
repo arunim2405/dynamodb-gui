@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { TableInfo, TableDetails, ConnectionInfo, AWSProfile } from '@/lib/services/dynamodb-service'
+import type { TableInfo, TableDetails, ConnectionInfo, AWSProfile, ScanQueryResult } from '@/lib/services/dynamodb-service'
 import { useTabs } from './TabsContext'
 import type { ViewType } from './TabsContext'
 
@@ -45,6 +45,10 @@ interface DynamoDBContextValue {
   // View state (from active tab)
   currentView: ViewType
 
+  // Query results (from active tab)
+  queryResults: ScanQueryResult | null
+  lastEvaluatedKey: Record<string, unknown> | undefined
+
   // Actions
   setSelectedProfile: (profile: string) => void
   setSelectedRegion: (region: string) => void
@@ -53,6 +57,8 @@ interface DynamoDBContextValue {
   selectTable: (tableName: string) => Promise<void>
   setCurrentView: (view: ViewType) => void
   goBack: () => void
+  setQueryResults: (results: ScanQueryResult | null, lastKey?: Record<string, unknown>) => void
+  clearQueryResults: () => void
 }
 
 const DynamoDBContext = React.createContext<DynamoDBContextValue | undefined>(undefined)
@@ -91,6 +97,8 @@ export function DynamoDBProvider({ children }: DynamoDBProviderProps) {
     currentTable: null,
     currentTableName: null,
     currentView: 'tables' as ViewType,
+    queryResults: null,
+    lastEvaluatedKey: undefined,
   }
 
   // Load profiles on mount only
@@ -186,10 +194,26 @@ export function DynamoDBProvider({ children }: DynamoDBProviderProps) {
       currentView: 'tables',
       currentTable: null,
       currentTableName: null,
+      queryResults: null,
+      lastEvaluatedKey: undefined,
     })
     // Update the tab to show tables
     updateTab(activeTabId, { title: 'Tables', type: 'tables', tableName: undefined })
   }, [updateActiveTabSession, updateTab, activeTabId])
+
+  const setQueryResults = React.useCallback((results: ScanQueryResult | null, lastKey?: Record<string, unknown>) => {
+    updateActiveTabSession({
+      queryResults: results,
+      lastEvaluatedKey: lastKey,
+    })
+  }, [updateActiveTabSession])
+
+  const clearQueryResults = React.useCallback(() => {
+    updateActiveTabSession({
+      queryResults: null,
+      lastEvaluatedKey: undefined,
+    })
+  }, [updateActiveTabSession])
 
   const value: DynamoDBContextValue = {
     profiles,
@@ -204,6 +228,8 @@ export function DynamoDBProvider({ children }: DynamoDBProviderProps) {
     currentTable: sessionState.currentTable,
     currentTableName: sessionState.currentTableName,
     currentView: sessionState.currentView,
+    queryResults: sessionState.queryResults,
+    lastEvaluatedKey: sessionState.lastEvaluatedKey,
     setSelectedProfile,
     setSelectedRegion,
     connect,
@@ -211,6 +237,8 @@ export function DynamoDBProvider({ children }: DynamoDBProviderProps) {
     selectTable,
     setCurrentView,
     goBack,
+    setQueryResults,
+    clearQueryResults,
   }
 
   return <DynamoDBContext.Provider value={value}>{children}</DynamoDBContext.Provider>
