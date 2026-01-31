@@ -3,6 +3,10 @@ import type { TableInfo, TableDetails, ConnectionInfo } from '@/lib/services/dyn
 
 export type ViewType = 'tables' | 'explorer'
 
+// Default connection values
+export const DEFAULT_PROFILE = 'default'
+export const DEFAULT_REGION = 'us-east-1'
+
 // Session state that is stored per-tab
 export interface TabSessionState {
   // Connection state
@@ -36,8 +40,8 @@ export interface SessionTab {
 
 // Default session state for new tabs
 const createDefaultSessionState = (): TabSessionState => ({
-  selectedProfile: 'default',
-  selectedRegion: 'us-east-1',
+  selectedProfile: DEFAULT_PROFILE,
+  selectedRegion: DEFAULT_REGION,
   connectionInfo: null,
   tables: [],
   currentTable: null,

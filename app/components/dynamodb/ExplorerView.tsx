@@ -329,7 +329,7 @@ function JsonTreeView({ data, level = 0 }: JsonTreeViewProps) {
 }
 
 export function ExplorerView() {
-  const { currentTable, currentTableName } = useDynamoDB()
+  const { currentTable, currentTableName, selectedProfile, selectedRegion, connectionInfo } = useDynamoDB()
   const { addTab } = useTabs()
 
   // Query state
@@ -508,6 +508,16 @@ export function ExplorerView() {
     setError(null)
 
     try {
+      // Ensure we're using the correct AWS session for this tab
+      // The singleton service might be connected to a different profile/region
+      if (connectionInfo) {
+        try {
+          await window.conveyor.dynamodb.connect(selectedProfile, selectedRegion)
+        } catch (connectError) {
+          throw new Error(`Failed to connect to AWS profile "${selectedProfile}" in region "${selectedRegion}": ${connectError instanceof Error ? connectError.message : 'Unknown error'}`)
+        }
+      }
+
       const request: ScanQueryRequest = {
         tableName: currentTableName,
         indexName: selectedIndex !== currentTableName ? selectedIndex : undefined,
@@ -606,6 +616,14 @@ export function ExplorerView() {
 
   const handleSaveItem = async (item: Record<string, unknown>) => {
     if (!currentTableName) throw new Error('No table selected')
+    // Ensure we're using the correct AWS session for this tab
+    if (connectionInfo) {
+      try {
+        await window.conveyor.dynamodb.connect(selectedProfile, selectedRegion)
+      } catch (connectError) {
+        throw new Error(`Failed to connect to AWS profile "${selectedProfile}" in region "${selectedRegion}": ${connectError instanceof Error ? connectError.message : 'Unknown error'}`)
+      }
+    }
     await window.conveyor.dynamodb.putItem(currentTableName, item)
     // Refresh results after saving
     await executeQuery()
@@ -630,6 +648,14 @@ export function ExplorerView() {
     }
 
     try {
+      // Ensure we're using the correct AWS session for this tab
+      if (connectionInfo) {
+        try {
+          await window.conveyor.dynamodb.connect(selectedProfile, selectedRegion)
+        } catch (connectError) {
+          throw new Error(`Failed to connect to AWS profile "${selectedProfile}" in region "${selectedRegion}": ${connectError instanceof Error ? connectError.message : 'Unknown error'}`)
+        }
+      }
       await window.conveyor.dynamodb.deleteItem(currentTableName, key)
       // Remove from local results
       if (results) {

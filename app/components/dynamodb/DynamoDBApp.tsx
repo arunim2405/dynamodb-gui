@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { DynamoDBProvider, useDynamoDB } from './DynamoDBContext'
-import { TabsProvider, useTabs } from './TabsContext'
+import { TabsProvider, useTabs, DEFAULT_PROFILE, DEFAULT_REGION } from './TabsContext'
 import { TabBar } from './TabBar'
 import { ConnectionHeader } from './ConnectionHeader'
 import { TablesView } from './TablesView'
@@ -20,6 +20,8 @@ function TabContent() {
         tableName={activeTab.tableName || ''}
         item={activeTab.item || null}
         isNew={activeTab.isNew}
+        profile={activeTab.sessionState?.selectedProfile || DEFAULT_PROFILE}
+        region={activeTab.sessionState?.selectedRegion || DEFAULT_REGION}
       />
     )
   }
@@ -37,12 +39,20 @@ interface ItemTabViewProps {
   tableName: string
   item: Record<string, unknown> | null
   isNew?: boolean
+  profile: string
+  region: string
 }
 
-function ItemTabView({ tableName, item, isNew }: ItemTabViewProps) {
+function ItemTabView({ tableName, item, isNew, profile, region }: ItemTabViewProps) {
   const { removeTab, activeTabId } = useTabs()
 
   const handleSave = async (updatedItem: Record<string, unknown>) => {
+    try {
+      // Ensure we're using the correct AWS session for this tab
+      await window.conveyor.dynamodb.connect(profile, region)
+    } catch (error) {
+      throw new Error(`Failed to connect to AWS profile "${profile}" in region "${region}": ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
     await window.conveyor.dynamodb.putItem(tableName, updatedItem)
   }
 
