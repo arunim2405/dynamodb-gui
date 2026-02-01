@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useDynamoDB } from './DynamoDBContext'
+import { useTabs } from './TabsContext'
 import { DocumentEditor } from './DocumentEditor'
 import { Input } from '@/app/components/ui/input'
 import { Button } from '@/app/components/ui/button'
@@ -10,7 +11,7 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert'
 import { Collapsible } from '@/app/components/ui/collapsible'
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group'
 import { Checkbox } from '@/app/components/ui/checkbox'
-import { Play, Plus, X, RotateCcw, ChevronDown, ChevronRight, Copy, Pencil, Trash2, FilePlus } from 'lucide-react'
+import { Play, Plus, X, RotateCcw, ChevronDown, ChevronRight, Copy, Pencil, Trash2, FilePlus, ExternalLink } from 'lucide-react'
 import type {
   ScanQueryRequest,
   ScanQueryFilter,
@@ -60,6 +61,9 @@ const PROJECTION_TYPES = [
   { value: 'KEYS_ONLY', label: 'Keys only' },
   { value: 'INCLUDE', label: 'Include specific attributes' },
 ]
+
+// Maximum length for tab titles
+const MAX_TAB_TITLE_LENGTH = 30
 
 interface FilterRowProps {
   filter: ScanQueryFilter
@@ -211,6 +215,33 @@ interface JsonTreeViewProps {
   level?: number
 }
 
+// Helper component for copyable values
+function CopyableValue({ value, displayValue, className }: { value: string; displayValue: React.ReactNode; className?: string }) {
+  const [copied, setCopied] = React.useState(false)
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
+  return (
+    <span
+      onClick={handleCopy}
+      className={`cursor-pointer hover:bg-muted/50 rounded px-0.5 -mx-0.5 transition-colors select-text ${className || ''}`}
+      title={copied ? 'Copied!' : 'Click to copy'}
+    >
+      {displayValue}
+      {copied && <span className="ml-1 text-green-500 text-[10px]">✓</span>}
+    </span>
+  )
+}
+
 function JsonTreeView({ data, level = 0 }: JsonTreeViewProps) {
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set())
 
@@ -228,19 +259,19 @@ function JsonTreeView({ data, level = 0 }: JsonTreeViewProps) {
 
   const renderValue = (key: string, value: unknown): React.ReactNode => {
     if (value === null) {
-      return <span className="text-muted-foreground/70 italic">null</span>
+      return <CopyableValue value="null" displayValue={<span className="text-muted-foreground/70 italic">null</span>} />
     }
 
     if (typeof value === 'boolean') {
-      return <span className="text-sky-400">{value.toString()}</span>
+      return <CopyableValue value={value.toString()} displayValue={<span className="text-sky-400">{value.toString()}</span>} />
     }
 
     if (typeof value === 'number') {
-      return <span className="text-emerald-400">{value}</span>
+      return <CopyableValue value={value.toString()} displayValue={<span className="text-emerald-400">{value}</span>} />
     }
 
     if (typeof value === 'string') {
-      return <span className="text-amber-400">"{value}"</span>
+      return <CopyableValue value={value} displayValue={<span className="text-amber-400">"{value}"</span>} />
     }
 
     if (Array.isArray(value)) {
@@ -255,7 +286,7 @@ function JsonTreeView({ data, level = 0 }: JsonTreeViewProps) {
             <div className="ml-4 border-l border-border/50 pl-3 mt-1">
               {value.map((item, i) => (
                 <div key={i} className="flex gap-2 py-0.5">
-                  <span className="text-muted-foreground/70">{i}:</span>
+                  <span className="text-muted-foreground/70 select-text">{i}:</span>
                   {renderValue(`${key}.${i}`, item)}
                 </div>
               ))}
@@ -282,14 +313,14 @@ function JsonTreeView({ data, level = 0 }: JsonTreeViewProps) {
       )
     }
 
-    return <span>{String(value)}</span>
+    return <CopyableValue value={String(value)} displayValue={<span>{String(value)}</span>} />
   }
 
   return (
-    <div className="font-mono text-xs space-y-0.5 leading-relaxed">
+    <div className="font-mono text-xs space-y-0.5 leading-relaxed select-text">
       {Object.entries(data).map(([key, value]) => (
         <div key={key} className="flex gap-2">
-          <span className="text-violet-400 shrink-0">{key}:</span>
+          <CopyableValue value={key} displayValue={<span className="text-violet-400 shrink-0">{key}:</span>} />
           {renderValue(key, value)}
         </div>
       ))}
@@ -298,7 +329,8 @@ function JsonTreeView({ data, level = 0 }: JsonTreeViewProps) {
 }
 
 export function ExplorerView() {
-  const { currentTable, currentTableName } = useDynamoDB()
+  const { currentTable, currentTableName, selectedProfile, selectedRegion, connectionInfo, queryResults, lastEvaluatedKey, setQueryResults, clearQueryResults } = useDynamoDB()
+  const { addTab } = useTabs()
 
   // Query state
   const [mode, setMode] = React.useState<'scan' | 'query'>('scan')
@@ -326,11 +358,9 @@ export function ExplorerView() {
     }[]
   >([{ attributeName: '', operator: 'EQ', value: '', type: 'S' }])
 
-  // Results state
-  const [results, setResults] = React.useState<ScanQueryResult | null>(null)
+  // Loading and error state (local, not persisted)
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-  const [lastEvaluatedKey, setLastEvaluatedKey] = React.useState<Record<string, unknown> | undefined>()
 
   // Document editor state
   const [editorOpen, setEditorOpen] = React.useState(false)
@@ -464,9 +494,8 @@ export function ExplorerView() {
     // Reset will re-trigger the useEffect to populate from schema
     setPartitionKeyValues([{ attributeName: '', value: '', type: 'S' }])
     setSortKeyConditions([{ attributeName: '', operator: 'EQ', value: '', type: 'S' }])
-    setResults(null)
+    clearQueryResults()
     setError(null)
-    setLastEvaluatedKey(undefined)
   }
 
   const executeQuery = async (loadMore = false) => {
@@ -476,6 +505,16 @@ export function ExplorerView() {
     setError(null)
 
     try {
+      // Ensure we're using the correct AWS session for this tab
+      // The singleton service might be connected to a different profile/region
+      if (connectionInfo) {
+        try {
+          await window.conveyor.dynamodb.connect(selectedProfile, selectedRegion)
+        } catch (connectError) {
+          throw new Error(`Failed to connect to AWS profile "${selectedProfile}" in region "${selectedRegion}": ${connectError instanceof Error ? connectError.message : 'Unknown error'}`)
+        }
+      }
+
       const request: ScanQueryRequest = {
         tableName: currentTableName,
         indexName: selectedIndex !== currentTableName ? selectedIndex : undefined,
@@ -513,17 +552,17 @@ export function ExplorerView() {
 
       const result = await window.conveyor.dynamodb.scanQuery(request)
 
-      if (loadMore && results) {
-        setResults({
+      if (loadMore && queryResults) {
+        const combinedResults = {
           ...result,
-          items: [...results.items, ...result.items],
-          count: results.count + result.count,
-          scannedCount: results.scannedCount + result.scannedCount,
-        })
+          items: [...queryResults.items, ...result.items],
+          count: queryResults.count + result.count,
+          scannedCount: queryResults.scannedCount + result.scannedCount,
+        }
+        setQueryResults(combinedResults, result.lastEvaluatedKey)
       } else {
-        setResults(result)
+        setQueryResults(result, result.lastEvaluatedKey)
       }
-      setLastEvaluatedKey(result.lastEvaluatedKey)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Query failed')
     } finally {
@@ -532,8 +571,8 @@ export function ExplorerView() {
   }
 
   const copyResultsToClipboard = () => {
-    if (results) {
-      navigator.clipboard.writeText(JSON.stringify(results.items, null, 2))
+    if (queryResults) {
+      navigator.clipboard.writeText(JSON.stringify(queryResults.items, null, 2))
     }
   }
 
@@ -542,6 +581,28 @@ export function ExplorerView() {
     setEditingItem(item)
     setIsNewItem(false)
     setEditorOpen(true)
+  }
+
+  const handleOpenInNewTab = (item: Record<string, unknown>) => {
+    if (!currentTableName) return
+    // Get item identifier for title (first key or first attribute)
+    const partitionKey = currentTable?.table.partitionKey?.name
+    const itemTitle = partitionKey && item[partitionKey] 
+      ? `${currentTableName}: ${String(item[partitionKey]).substring(0, MAX_TAB_TITLE_LENGTH)}`
+      : `${currentTableName}: Item`
+    // Pass the current tab's connection state so the item tab inherits it
+    addTab({
+      title: itemTitle,
+      type: 'item',
+      tableName: currentTableName,
+      item: item,
+      isNew: false,
+      sessionState: {
+        selectedProfile,
+        selectedRegion,
+        connectionInfo,
+      },
+    })
   }
 
   const handleCreateItem = () => {
@@ -558,6 +619,14 @@ export function ExplorerView() {
 
   const handleSaveItem = async (item: Record<string, unknown>) => {
     if (!currentTableName) throw new Error('No table selected')
+    // Ensure we're using the correct AWS session for this tab
+    if (connectionInfo) {
+      try {
+        await window.conveyor.dynamodb.connect(selectedProfile, selectedRegion)
+      } catch (connectError) {
+        throw new Error(`Failed to connect to AWS profile "${selectedProfile}" in region "${selectedRegion}": ${connectError instanceof Error ? connectError.message : 'Unknown error'}`)
+      }
+    }
     await window.conveyor.dynamodb.putItem(currentTableName, item)
     // Refresh results after saving
     await executeQuery()
@@ -582,14 +651,22 @@ export function ExplorerView() {
     }
 
     try {
+      // Ensure we're using the correct AWS session for this tab
+      if (connectionInfo) {
+        try {
+          await window.conveyor.dynamodb.connect(selectedProfile, selectedRegion)
+        } catch (connectError) {
+          throw new Error(`Failed to connect to AWS profile "${selectedProfile}" in region "${selectedRegion}": ${connectError instanceof Error ? connectError.message : 'Unknown error'}`)
+        }
+      }
       await window.conveyor.dynamodb.deleteItem(currentTableName, key)
-      // Remove from local results
-      if (results) {
-        setResults({
-          ...results,
-          items: results.items.filter((_, i) => i !== index),
-          count: results.count - 1,
-        })
+      // Remove from tab's query results
+      if (queryResults) {
+        setQueryResults({
+          ...queryResults,
+          items: queryResults.items.filter((_, i) => i !== index),
+          count: queryResults.count - 1,
+        }, lastEvaluatedKey)
       }
       setDeleteConfirm(null)
     } catch (err) {
@@ -618,7 +695,7 @@ export function ExplorerView() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Query Builder */}
-      <div className="border-b border-border/50 px-5 py-4 space-y-3 bg-card/20">
+      <div className="border-b border-border/50 px-5 py-4 space-y-3 bg-card/20 max-h-[50vh] overflow-y-auto shrink-0">
         <Collapsible title={<span className="text-primary font-medium text-sm">Scan or query items</span>} defaultOpen>
           <div className="space-y-4">
             {/* Mode Toggle */}
@@ -788,13 +865,13 @@ export function ExplorerView() {
 
       {/* Results */}
       <div className="flex-1 overflow-auto">
-        {results && (
+        {queryResults && (
           <div className="px-5 py-4">
             {/* Results Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <h3 className="text-sm font-medium">Items returned: <span className="text-primary tabular-nums">{results.count}</span></h3>
-                <Badge variant="outline" className="text-xs">Scanned: {results.scannedCount}</Badge>
+                <h3 className="text-sm font-medium">Items returned: <span className="text-primary tabular-nums">{queryResults.count}</span></h3>
+                <Badge variant="outline" className="text-xs">Scanned: {queryResults.scannedCount}</Badge>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleCreateItem} className="h-7 text-xs">
@@ -810,13 +887,22 @@ export function ExplorerView() {
 
             {/* Results List */}
             <div className="space-y-2">
-              {results.items.map((item, index) => (
+              {queryResults.items.map((item, index) => (
                 <div
                   key={index}
                   className="border border-border/40 rounded-md p-3 bg-card/50 hover:bg-muted/30 hover:border-border/60 transition-all group relative"
                 >
                   {/* Item actions */}
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                      onClick={() => handleOpenInNewTab(item)}
+                      title="Open in new tab"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -852,7 +938,7 @@ export function ExplorerView() {
           </div>
         )}
 
-        {!results && !isLoading && !error && (
+        {!queryResults && !isLoading && !error && (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[200px]">
             <div className="text-muted-foreground">
               <p className="text-sm mb-1">Configure your {mode === 'scan' ? 'scan' : 'query'} and click Run to see results.</p>
