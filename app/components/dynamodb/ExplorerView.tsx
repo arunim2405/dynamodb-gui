@@ -590,12 +590,18 @@ export function ExplorerView() {
     const itemTitle = partitionKey && item[partitionKey] 
       ? `${currentTableName}: ${String(item[partitionKey]).substring(0, MAX_TAB_TITLE_LENGTH)}`
       : `${currentTableName}: Item`
+    // Pass the current tab's connection state so the item tab inherits it
     addTab({
       title: itemTitle,
       type: 'item',
       tableName: currentTableName,
       item: item,
       isNew: false,
+      sessionState: {
+        selectedProfile,
+        selectedRegion,
+        connectionInfo,
+      },
     })
   }
 
